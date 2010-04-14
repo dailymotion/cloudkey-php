@@ -186,11 +186,19 @@ class CloudKey_Base
                     case 'ApiNotFound':     throw new CloudKey_NotFoundException($method);
                     case 'ApiMissingParam': throw new CloudKey_MissingParamException($method);
                     case 'ApiInvalidParam': throw new CloudKey_InvalidParamException($method);
+                    default:                throw new CloudKey_Exception($method, $result->type);
                 }
-                break;
 
-            case 401: throw new CloudKey_AuthorizationRequiredException($method);
-            case 403: throw new CloudKey_AuthenticationFailedException($method);
+            case 401:
+                if ($this->username !== null)
+                {
+                    throw new CloudKey_AuthenticationFailedException($method);
+                }
+                else
+                {
+                    throw new CloudKey_AuthenticationFailedException($method);
+                }
+
             case 204: return null; // Empty response
 
             default:

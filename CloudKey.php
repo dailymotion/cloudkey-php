@@ -37,7 +37,7 @@ class CloudKey
 
 }
 
-class CloudKey_User extends CloudKey_Base
+class CloudKey_User extends CloudKey_Api
 {
     protected
         $whoami = false;
@@ -54,15 +54,15 @@ class CloudKey_User extends CloudKey_Base
     }
 }
 
-class CloudKey_Media extends CloudKey_Base
+class CloudKey_Media extends CloudKey_Api
 {
 }
 
-class CloudKey_File extends CloudKey_Base
+class CloudKey_File extends CloudKey_Api
 {
 }
 
-class CloudKey_Base
+class CloudKey_Api
 {
     protected
         $username = null,
@@ -86,7 +86,7 @@ class CloudKey_Base
             $this->base_url = $base_url;
         }
 
-        if (get_class($this) !== 'CloudKey_Base' && $namespace === null)
+        if (get_class($this) !== 'CloudKey_Api' && $namespace === null)
         {
             $this->namespace = str_replace('cloudkey_', '', strtolower(get_class($this)));
         }

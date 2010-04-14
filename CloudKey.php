@@ -11,7 +11,7 @@ class CloudKey
         $base_url = null,
         $proxy = null;
 
-    function __construct($username, $password, $base_url, $proxy = null)
+    function __construct($username, $password, $base_url = null, $proxy = null)
     {
         $this->username = $username;
         $this->password = $password;
@@ -60,10 +60,6 @@ class CloudKey_Media extends CloudKey_Base
 
 class CloudKey_File extends CloudKey_Base
 {
-    public function upload($filename, $progress_callback = null)
-    {
-
-    }
 }
 
 class CloudKey_Base
@@ -71,21 +67,24 @@ class CloudKey_Base
     protected
         $username = null,
         $password = null,
-        $base_url = null,
+        $base_url = 'http://api.dmcloud.net',
         $namespace = null,
-        $proxy = null,
-        $whoami_cache = null;
+        $proxy = null;
 
     public
         $connect_timeout = 120,
         $response_timeout = 120;
 
-    function __construct($username, $password, $base_url, $namespace = null, $proxy = null)
+    function __construct($username, $password, $base_url = null, $namespace = null, $proxy = null)
     {
         $this->username = $username;
         $this->password = $password;
-        $this->base_url = $base_url;
         $this->proxy = $proxy;
+
+        if ($base_url !== null)
+        {
+            $this->base_url = $base_url;
+        }
 
         if (get_class($this) !== 'CloudKey_Base' && $namespace === null)
         {

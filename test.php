@@ -3,7 +3,6 @@
 
 $username = 'test';
 $password = 'test';
-$base_url = 'http://api.dmcloud.net';
 
 @include 'local_config.php';
 
@@ -27,8 +26,8 @@ class CloudKey_UserTest extends PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        global $username, $password, $base_url;
-        $this->user = new CloudKey_User($username, $password, $base_url);
+        global $username, $password;
+        $this->user = new CloudKey_User($username, $password);
     }
 
     public function testWhoami()
@@ -49,8 +48,8 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        global $username, $password, $base_url;
-        $this->media = new CloudKey_Media($username, $password, $base_url);
+        global $username, $password;
+        $this->media = new CloudKey_Media($username, $password);
         $this->media->reset();
     }
 

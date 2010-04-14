@@ -1,8 +1,11 @@
 #!/usr/bin/env phpunit
 <?php
 
-$username = 'test';
-$password = 'test';
+$username = null;
+$password = null;
+$root_username = null;
+$root_password = null;
+$switch_user = null;
 
 @include 'local_config.php';
 
@@ -14,8 +17,68 @@ class AllTests
     public static function suite()
     {
         $suite = new PHPUnit_Framework_TestSuite();
+        $suite->addTestSuite('CloudKeyTest');
+        $suite->addTestSuite('CloudKey_UserTest');
         $suite->addTestSuite('CloudKey_MediaTest');
         return $suite;
+    }
+}
+
+class CloudKeyTest extends PHPUnit_Framework_TestCase
+{
+    protected function setUp()
+    {
+        global $username, $password, $root_username, $root_password, $switch_user;
+        if (!$username || !$password || !$root_username || !$root_password || !$switch_user)
+        {
+            $this->markTestSkipped('Missing test configuration');
+        }
+    }
+
+    /**
+     * @expectedException CloudKey_AuthorizationRequiredException
+     */
+    public function testAnonymous()
+    {
+        $cloudkey = new CloudKey(null, null);
+        $cloudkey->user->whoami();
+    }
+
+    public function testNormalUser()
+    {
+        global $username, $password;
+        $cloudkey = new CloudKey($username, $password);
+        $res = $cloudkey->user->whoami();
+        $this->assertEquals($res->username, $username);
+    }
+
+    public function testNormalUserSu()
+    {
+        global $username, $password, $switch_user;
+        $cloudkey = new CloudKey($username, $password);
+        $cloudkey->act_as_user($switch_user);
+        $res = $cloudkey->user->whoami();
+        $this->assertEquals($res->username, $username);
+    }
+
+    public function testSuperUserSu()
+    {
+        global $root_username, $root_password, $switch_user;
+        $cloudkey = new CloudKey($root_username, $root_password);
+        $cloudkey->act_as_user($switch_user);
+        $res = $cloudkey->user->whoami();
+        $this->assertEquals($switch_user, $res->username);
+    }
+
+    /**
+     * @expectedException CloudKey_AuthenticationFailedException
+     */
+    public function testSuperUserSuWrongUser()
+    {
+        global $root_username, $root_password, $switch_user;
+        $cloudkey = new CloudKey($root_username, $root_password);
+        $cloudkey->act_as_user('unexisting_user');
+        $res = $cloudkey->user->whoami();
     }
 }
 
@@ -24,16 +87,21 @@ class CloudKey_UserTest extends PHPUnit_Framework_TestCase
     protected
         $user = null;
 
-    public function setUp()
+    protected function setUp()
     {
         global $username, $password;
-        $this->user = new CloudKey_User($username, $password);
+        if (!$username || !$password)
+        {
+            $this->markTestSkipped('Missing test configuration');
+            return;
+        }
+        $this->cloudkey = new CloudKey($username, $password);
     }
 
     public function testWhoami()
     {
         global $username;
-        $res = $this->user->whoami();
+        $res = $this->cloudkey->user->whoami();
         $this->assertType('object', $res);
         $this->assertObjectHasAttribute('id', $res);
         $this->assertObjectHasAttribute('username', $res);
@@ -46,16 +114,24 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
     protected
         $media = null;
 
-    public function setUp()
+    protected function setUp()
     {
         global $username, $password;
-        $this->media = new CloudKey_Media($username, $password);
-        $this->media->reset();
+        if (!$username || !$password)
+        {
+            $this->markTestSkipped('Missing test configuration');
+            return;
+        }
+        $this->cloudkey = new CloudKey($username, $password);
+        $this->cloudkey->media->reset();
     }
 
     public function tearDown()
     {
-        $this->media->reset();
+        if ($this->cloudkey)
+        {
+            $this->cloudkey->media->reset();
+        }
     }
 
     //
@@ -64,7 +140,7 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
 
     public function testCreate()
     {
-        $res = $this->media->create();
+        $res = $this->cloudkey->media->create();
         $this->assertType('object', $res);
         $this->assertObjectHasAttribute('id', $res);
         $this->assertEquals(strlen($res->id), 24);
@@ -72,8 +148,8 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
 
     public function testInfo()
     {
-        $media = $this->media->create();
-        $res = $this->media->info(array('id' => $media->id));
+        $media = $this->cloudkey->media->create();
+        $res = $this->cloudkey->media->info(array('id' => $media->id));
         $this->assertType('object', $res);
         $this->assertObjectHasAttribute('id', $res);
         $this->assertEquals(strlen($res->id), 24);
@@ -84,7 +160,7 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testInfoNotFound()
     {
-        $this->media->info(array('id' => '1b87186c84e1b015a0000000'));
+        $this->cloudkey->media->info(array('id' => '1b87186c84e1b015a0000000'));
     }
 
     /**
@@ -92,7 +168,7 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testInfoInvalidMediaId()
     {
-        $this->media->info(array('id' => 'b87186c84e1b015a0000000'));
+        $this->cloudkey->media->info(array('id' => 'b87186c84e1b015a0000000'));
     }
 
     /**
@@ -100,12 +176,12 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testDelete()
     {
-        $media = $this->media->create();
-        $res = $this->media->delete(array('id' => $media->id));
+        $media = $this->cloudkey->media->create();
+        $res = $this->cloudkey->media->delete(array('id' => $media->id));
         $this->assertNull($res);
 
         // Should throw CloudKey_NotFoundException
-        $this->media->info(array('id' => $media->id));
+        $this->cloudkey->media->info(array('id' => $media->id));
     }
 
     /**
@@ -113,7 +189,7 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testDeleteNotFound()
     {
-        $this->media->delete(array('id' => '1b87186c84e1b015a0000000'));
+        $this->cloudkey->media->delete(array('id' => '1b87186c84e1b015a0000000'));
     }
 
     /**
@@ -121,7 +197,7 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testDeleteInvalidMediaId()
     {
-        $this->media->delete(array('id' => 'b87186c84e1b015a0000000'));
+        $this->cloudkey->media->delete(array('id' => 'b87186c84e1b015a0000000'));
     }
 
     //
@@ -130,11 +206,11 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
 
     public function testSetMeta()
     {
-        $media = $this->media->create();
-        $res = $this->media->set_meta(array('id' => $media->id, 'key' => 'mykey', 'value' => 'my_value'));
+        $media = $this->cloudkey->media->create();
+        $res = $this->cloudkey->media->set_meta(array('id' => $media->id, 'key' => 'mykey', 'value' => 'my_value'));
         $this->assertNull($res);
 
-        $res = $this->media->get_meta(array('id' => $media->id, 'key' => 'mykey'));
+        $res = $this->cloudkey->media->get_meta(array('id' => $media->id, 'key' => 'mykey'));
         $this->assertType('object', $res);
         $this->assertObjectHasAttribute('value', $res);
         $this->assertEquals($res->value, 'my_value');
@@ -145,8 +221,8 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testSetMetaMediaNotFound()
     {
-        $media = $this->media->create();
-        $this->media->set_meta(array('id' => '1b87186c84e1b015a0000000', 'key' => 'mykey', 'value' => 'my_value'));
+        $media = $this->cloudkey->media->create();
+        $this->cloudkey->media->set_meta(array('id' => '1b87186c84e1b015a0000000', 'key' => 'mykey', 'value' => 'my_value'));
     }
 
     /**
@@ -154,8 +230,8 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testSetMetaInvalidMediaId()
     {
-        $media = $this->media->create();
-        $this->media->set_meta(array('id' => 'b87186c84e1b015a0000000', 'key' => 'mykey', 'value' => 'my_value'));
+        $media = $this->cloudkey->media->create();
+        $this->cloudkey->media->set_meta(array('id' => 'b87186c84e1b015a0000000', 'key' => 'mykey', 'value' => 'my_value'));
     }
 
     /**
@@ -163,8 +239,8 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testSetMetaMissingArgKey()
     {
-        $media = $this->media->create();
-        $this->media->set_meta(array('id' => $media->id, 'key' => 'mykey'));
+        $media = $this->cloudkey->media->create();
+        $this->cloudkey->media->set_meta(array('id' => $media->id, 'key' => 'mykey'));
     }
 
     /**
@@ -172,8 +248,8 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testSetMetaMissingArgValue()
     {
-        $media = $this->media->create();
-        $this->media->set_meta(array('id' => $media->id, 'value' => 'my_value'));
+        $media = $this->cloudkey->media->create();
+        $this->cloudkey->media->set_meta(array('id' => $media->id, 'value' => 'my_value'));
     }
 
     /**
@@ -181,21 +257,21 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testSetMetaMissingArgKeyAndValue()
     {
-        $media = $this->media->create();
-        $this->media->set_meta(array('id' => $media->id));
+        $media = $this->cloudkey->media->create();
+        $this->cloudkey->media->set_meta(array('id' => $media->id));
     }
 
     public function testSetMetaUpdate()
     {
-        $media = $this->media->create();
+        $media = $this->cloudkey->media->create();
 
-        $res = $this->media->set_meta(array('id' => $media->id, 'key' => 'mykey', 'value' => 'value'));
+        $res = $this->cloudkey->media->set_meta(array('id' => $media->id, 'key' => 'mykey', 'value' => 'value'));
         $this->assertNull($res);
 
-        $res = $this->media->set_meta(array('id' => $media->id, 'key' => 'mykey', 'value' => 'new_value'));
+        $res = $this->cloudkey->media->set_meta(array('id' => $media->id, 'key' => 'mykey', 'value' => 'new_value'));
         $this->assertNull($res);
 
-        $res = $this->media->get_meta(array('id' => $media->id, 'key' => 'mykey'));
+        $res = $this->cloudkey->media->get_meta(array('id' => $media->id, 'key' => 'mykey'));
         $this->assertType('object', $res);
         $this->assertObjectHasAttribute('value', $res);
         $this->assertEquals($res->value, 'new_value');
@@ -206,23 +282,23 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testGetMetaMediaNotFound()
     {
-        $media = $this->media->create();
-        $this->media->get_meta(array('id' => $media->id, 'key' => 'not_found_key'));
+        $media = $this->cloudkey->media->create();
+        $this->cloudkey->media->get_meta(array('id' => $media->id, 'key' => 'not_found_key'));
     }
 
     public function testListMeta()
     {
-        $media = $this->media->create();
+        $media = $this->cloudkey->media->create();
 
-        $res = $this->media->list_meta(array('id' => $media->id));
+        $res = $this->cloudkey->media->list_meta(array('id' => $media->id));
         $this->assertType('object', $res);
 
         for ($i = 0; $i < 10; $i++)
         {
-            $this->media->set_meta(array('id' => $media->id, 'key' => 'mykey-' . $id, 'value' => 'a value'));
+            $this->cloudkey->media->set_meta(array('id' => $media->id, 'key' => 'mykey-' . $id, 'value' => 'a value'));
         }
 
-        $res = $this->media->list_meta(array('id' => $media->id));
+        $res = $this->cloudkey->media->list_meta(array('id' => $media->id));
         $this->assertType('object', $res);
 
         for ($i = 0; $i < 10; $i++)
@@ -236,11 +312,11 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testRemoveMeta()
     {
-        $media = $this->media->create();
-        $this->media->set_meta(array('id' => $media->id, 'key' => 'mykey', 'value' => 'value'));
-        $res = $this->media->remove_meta(array('id' => $media->id, 'key' => 'mykey'));
+        $media = $this->cloudkey->media->create();
+        $this->cloudkey->media->set_meta(array('id' => $media->id, 'key' => 'mykey', 'value' => 'value'));
+        $res = $this->cloudkey->media->remove_meta(array('id' => $media->id, 'key' => 'mykey'));
         $this->assertNull($res);
-        $this->media->get_meta(array('id' => $media->id, 'key' => 'mykey'));
+        $this->cloudkey->media->get_meta(array('id' => $media->id, 'key' => 'mykey'));
     }
 
     /**
@@ -248,8 +324,8 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
      */
     public function testRemoveMetaNotFound()
     {
-        $media = $this->media->create();
-        $this->media->remove_meta(array('id' => $media->id, 'key' => 'mykey'));
+        $media = $this->cloudkey->media->create();
+        $this->cloudkey->media->remove_meta(array('id' => $media->id, 'key' => 'mykey'));
     }
 
     //

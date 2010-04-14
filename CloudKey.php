@@ -23,9 +23,10 @@ class CloudKey
     public function act_as_user($username)
     {
         $this->act_as_user = $username;
+        unset($this->namespaces['user']); // reset whoami cache
         foreach ($this->namespaces as $namespace)
         {
-            $namespace->extra_params['__user__'] = $username;
+            $namespace->extra_params['__user__'] = $this->act_as_user;
         }
     }
 
@@ -40,6 +41,10 @@ class CloudKey
             }
             $this->namespaces[$name] = new $class($this->username, $this->password, $this->base_url, null, $this->proxy);
             $this->namespaces[$name]->parent = $this;
+            if ($this->act_as_user)
+            {
+                $this->namespaces[$name]->extra_params['__user__'] = $this->act_as_user;
+            }
         }
 
         return $this->namespaces[$name];
@@ -124,7 +129,7 @@ class CloudKey_Api
         {
             if ($params === null)
             {
-                $params = $extra_params;
+                $params = $this->extra_params;
             }
             else
             {
@@ -220,7 +225,7 @@ class CloudKey_Api
                 }
                 else
                 {
-                    throw new CloudKey_AuthenticationFailedException($method);
+                    throw new CloudKey_AuthorizationRequiredException($method);
                 }
 
             case 204: return null; // Empty response

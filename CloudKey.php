@@ -9,7 +9,8 @@ class CloudKey
         $username = null,
         $password = null,
         $base_url = null,
-        $proxy = null;
+        $proxy = null,
+        $act_as_user = null;
 
     function __construct($username, $password, $base_url = null, $proxy = null)
     {
@@ -17,6 +18,15 @@ class CloudKey
         $this->password = $password;
         $this->base_url = $base_url;
         $this->proxy = $proxy;
+    }
+
+    public function act_as_user($username)
+    {
+        $this->act_as_user = $username;
+        foreach ($this->namespaces as $namespace)
+        {
+            $namespace->extra_params['__user__'] = $username;
+        }
     }
 
     public function __get($name)
@@ -72,6 +82,7 @@ class CloudKey_Api
         $proxy = null;
 
     public
+        $extra_params = null,
         $connect_timeout = 120,
         $response_timeout = 120;
 
@@ -80,6 +91,7 @@ class CloudKey_Api
         $this->username = $username;
         $this->password = $password;
         $this->proxy = $proxy;
+        $this->extra_params = array();
 
         if ($base_url !== null)
         {
@@ -106,6 +118,18 @@ class CloudKey_Api
                 throw new CloudKey_InvalidMethodException(sprintf('%s requires an array as first argument', $method));
             }
             $params = $args[0];
+        }
+
+        if ($this->extra_params !== null)
+        {
+            if ($params === null)
+            {
+                $params = $extra_params;
+            }
+            else
+            {
+                $params = array_merge($params, $this->extra_params);
+            }
         }
 
         $path = $method;

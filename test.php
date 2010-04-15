@@ -3,6 +3,8 @@
 
 $username = null;
 $password = null;
+
+$skip_su = true;
 $root_username = null;
 $root_password = null;
 $switch_user = null;
@@ -20,9 +22,16 @@ if (!function_exists('readline'))
 
 if (!$username) $username = readline('Username: ');
 if (!$password) $password = readline('Password: ');
-if (!$root_username) $root_username = readline('Root Username (optional): ');
-if (!$root_password) $root_password = readline('Root Password (optional): ');
-if (!$switch_user) $switch_user = readline('SU Username (optional): ');
+if (!$skip_su && !$root_username) $root_username = readline('Root Username (optional): ');
+if ($root_username)
+{
+    if (!$root_password) $root_password = readline('Root Password: ');
+    if (!$switch_user) $switch_user = readline('SU Username: ');
+}
+else
+{
+    if (!$skip_su) echo "SU tests will be skipped";
+}
 
 require_once 'PHPUnit/Framework.php';
 require_once 'CloudKey.php';

@@ -24,6 +24,16 @@ structure or an array of `stdClass` instances when result is a list:
         echo $media->id;
     }
 
+There is one additional method not documented in the API reference which is an helper to upload
+media files. This helper is available in the `file` namespace and is named `upload_file`. This
+method takes a path to a file as a first argument and returns uploaded file information like its URL
+which can be provided to the `media.set_asset` method:
+
+    $file = $cloudkey->file->upload_file('path/to/video.mov');
+    $media = $cloudkey->media->create();
+    $cloudkey->media->set_asset(array('id' => $media->id, 'preset' => 'source', 'url' => $file->url));
+
+
 Methods can throw exceptions when errors occurs, be prepared to handle them. Here is a list of
 exception which could be thrown:
 

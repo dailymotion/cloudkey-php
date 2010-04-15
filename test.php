@@ -9,6 +9,21 @@ $switch_user = null;
 
 @include 'local_config.php';
 
+if (!function_exists('readline'))
+{
+    function readline($prompt = '')
+    {
+        echo $prompt;
+        return rtrim(fgets(STDIN), "\n");
+    }
+}
+
+if (!$username) $username = readline('Username: ');
+if (!$password) $password = readline('Password: ');
+if (!$root_username) $root_username = readline('Root Username (optional): ');
+if (!$root_password) $root_password = readline('Root Password (optional): ');
+if (!$switch_user) $switch_user = readline('SU Username (optional): ');
+
 require_once 'PHPUnit/Framework.php';
 require_once 'CloudKey.php';
 

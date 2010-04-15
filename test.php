@@ -21,6 +21,8 @@ class AllTests
         $suite->addTestSuite('CloudKey_UserTest');
         $suite->addTestSuite('CloudKey_FileTest');
         $suite->addTestSuite('CloudKey_MediaTest');
+        $suite->addTestSuite('CloudKey_MediaMetaTest');
+        $suite->addTestSuite('CloudKey_MediaAssetTest');
         return $suite;
     }
 }
@@ -123,7 +125,12 @@ class CloudKey_FileTest extends PHPUnit_Framework_TestCase
             $this->markTestSkipped('Missing test configuration');
             return;
         }
-        $this->cloudkey = new CloudKey($username, $password);
+        if (!is_file('.fixtures/video.3gp'))
+        {
+            $this->markTestSkipped('Missing fixtures, please do `git submodule init; git submodule update\'');
+            return;
+        }
+        $this->cloudkey = new CloudKey($username, $password, null, 'localhost:8888');
         $this->cloudkey->media->reset();
     }
 
@@ -159,12 +166,15 @@ class CloudKey_FileTest extends PHPUnit_Framework_TestCase
         $this->assertObjectHasAttribute('size', $media);
         $this->assertObjectHasAttribute('name', $media);
         $this->assertObjectHasAttribute('url', $media);
-        $this->assertEquals($media->size, 92545);
+        $this->assertObjectHasAttribute('hash', $media);
+        $this->assertObjectHasAttribute('seal', $media);
+        $this->assertEquals($media->size, filesize('.fixtures/video.3gp'));
         $this->assertEquals($media->name, 'video');
+        $this->assertEquals($media->hash, sha1_file('.fixtures/video.3gp'));
     }
 }
 
-class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
+class CloudKey_MediaTestBase extends PHPUnit_Framework_TestCase
 {
     protected
         $cloudkey = null;
@@ -188,11 +198,10 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
             $this->cloudkey->media->reset();
         }
     }
+}
 
-    //
-    // MEDIA CRUD
-    //
-
+class CloudKey_MediaTest extends CloudKey_MediaTestBase
+{
     public function testCreate()
     {
         $res = $this->cloudkey->media->create();
@@ -254,11 +263,10 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
     {
         $this->cloudkey->media->delete(array('id' => 'b87186c84e1b015a0000000'));
     }
+}
 
-    //
-    // META
-    //
-
+class CloudKey_MediaMetaTest extends CloudKey_MediaTestBase
+{
     public function testSetMeta()
     {
         $media = $this->cloudkey->media->create();
@@ -382,10 +390,18 @@ class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
         $media = $this->cloudkey->media->create();
         $this->cloudkey->media->remove_meta(array('id' => $media->id, 'key' => 'mykey'));
     }
+}
 
-    //
-    // ASSETS
-    //
-
-    // TODO
+class CloudKey_MediaAssetTest extends CloudKey_MediaTestBase
+{
+    public function testSetAsset()
+    {
+        $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
+        $media = $this->cloudkey->media->create();
+        $res = $this->cloudkey->media->set_asset(array('id' => $media->id, 'preset' => 'source', 'url' => $file->url));
+        $this->assertNull($res);
+        $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'source'));
+        $this->assertObjectHasAttribute('status', $res);
+        $this->assertEquals($res->status, 'ready');
+    }
 }

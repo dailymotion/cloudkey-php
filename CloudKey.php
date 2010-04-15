@@ -75,6 +75,45 @@ class CloudKey_Media extends CloudKey_Api
 
 class CloudKey_File extends CloudKey_Api
 {
+    public function upload_file($file)
+    {
+        $result = parent::upload($args);
+
+        if ($args === null || !is_array($args) || !isset($args['file']))
+        {
+            return $result;
+        }
+
+        $ch = curl_init();
+
+        curl_setopt_array($ch, array
+        (
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HEADER => false,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_CONNECTTIMEOUT => $this->connect_timeout,
+            CURLOPT_TIMEOUT => $this->response_timeout,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => array('file' => '@' . $args['file']),
+        ));
+
+        if ($this->proxy !== null)
+        {
+            curl_setopt($ch, CURLOPT_PROXY, $this->proxy);
+        }
+
+        $json_response = curl_exec($ch);
+
+        if (curl_errno($ch))
+        {
+            throw new CloudKey_ProtocolException(curl_error($ch), curl_errno($ch));
+        }
+
+        curl_close($ch);
+
+        return json_decode($json_response);
+    }
 }
 
 class CloudKey_Api

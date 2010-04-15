@@ -19,6 +19,7 @@ class AllTests
         $suite = new PHPUnit_Framework_TestSuite();
         $suite->addTestSuite('CloudKeyTest');
         $suite->addTestSuite('CloudKey_UserTest');
+        $suite->addTestSuite('CloudKey_FileTest');
         $suite->addTestSuite('CloudKey_MediaTest');
         return $suite;
     }
@@ -85,7 +86,7 @@ class CloudKeyTest extends PHPUnit_Framework_TestCase
 class CloudKey_UserTest extends PHPUnit_Framework_TestCase
 {
     protected
-        $user = null;
+        $cloudkey = null;
 
     protected function setUp()
     {
@@ -109,10 +110,64 @@ class CloudKey_UserTest extends PHPUnit_Framework_TestCase
     }
 }
 
+class CloudKey_FileTest extends PHPUnit_Framework_TestCase
+{
+    protected
+        $cloudkey = null;
+
+    protected function setUp()
+    {
+        global $username, $password;
+        if (!$username || !$password)
+        {
+            $this->markTestSkipped('Missing test configuration');
+            return;
+        }
+        $this->cloudkey = new CloudKey($username, $password);
+        $this->cloudkey->media->reset();
+    }
+
+    public function tearDown()
+    {
+        if ($this->cloudkey)
+        {
+            $this->cloudkey->media->reset();
+        }
+    }
+
+    public function testUpload()
+    {
+        $res = $this->cloudkey->file->upload();
+        $this->assertObjectHasAttribute('url', $res);
+    }
+
+    public function testUploadTarget()
+    {
+        $target = 'http://www.example.com/myform';
+        $res = $this->cloudkey->file->upload(array('target' => $target));
+        $this->assertObjectHasAttribute('url', $res);
+        parse_str(parse_url($res->url, PHP_URL_QUERY), $qs);
+        $this->assertArrayHasKey('seal', $qs);
+        $this->assertArrayHasKey('uuid', $qs);
+        $this->assertArrayHasKey('target', $qs);
+        $this->assertEquals($qs['target'], $target);
+    }
+
+    public function testUploadFile()
+    {
+        $media = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
+        $this->assertObjectHasAttribute('size', $media);
+        $this->assertObjectHasAttribute('name', $media);
+        $this->assertObjectHasAttribute('url', $media);
+        $this->assertEquals($media->size, 92545);
+        $this->assertEquals($media->name, 'video');
+    }
+}
+
 class CloudKey_MediaTest extends PHPUnit_Framework_TestCase
 {
     protected
-        $media = null;
+        $cloudkey = null;
 
     protected function setUp()
     {

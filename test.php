@@ -130,7 +130,7 @@ class CloudKey_FileTest extends PHPUnit_Framework_TestCase
             $this->markTestSkipped('Missing fixtures, please do `git submodule init; git submodule update\'');
             return;
         }
-        $this->cloudkey = new CloudKey($username, $password, null, 'localhost:8888');
+        $this->cloudkey = new CloudKey($username, $password);
         $this->cloudkey->media->reset();
     }
 
@@ -394,14 +394,95 @@ class CloudKey_MediaMetaTest extends CloudKey_MediaTestBase
 
 class CloudKey_MediaAssetTest extends CloudKey_MediaTestBase
 {
+    public function waitAssetReady($media_id, $asset_name, $wait = 60)
+    {
+        while ($wait--)
+        {
+            $asset = $this->cloudkey->media->get_asset(array('id' => $media_id, 'preset' => $asset_name));
+            if ($asset->status !== 'ready')
+            {
+                if ($asset->status === 'error')
+                {
+                    return false;
+                }
+                sleep(1);
+                continue;
+            }
+            return true;
+        }
+        throw new Exception('timeout exceeded');
+    }
+
     public function testSetAsset()
     {
         $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
         $media = $this->cloudkey->media->create();
         $res = $this->cloudkey->media->set_asset(array('id' => $media->id, 'preset' => 'source', 'url' => $file->url));
         $this->assertNull($res);
+
+        $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'source'));
+        $this->assertObjectHasAttribute('status', $res);
+        $this->assertContains($res->status, array('pending', 'processing'));
+
+        $res = $this->waitAssetReady($media->id, 'source');
+        $this->assertTrue($res);
         $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'source'));
         $this->assertObjectHasAttribute('status', $res);
         $this->assertEquals($res->status, 'ready');
+    }
+
+    /**
+    * @expectedException CloudKey_NotFoundException
+     */
+    public function testRemoveAsset()
+    {
+        $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
+        $media = $this->cloudkey->media->create();
+        $res = $this->cloudkey->media->set_asset(array('id' => $media->id, 'preset' => 'source', 'url' => $file->url));
+        $res = $this->waitAssetReady($media->id, 'source');
+        $this->assertTrue($res);
+
+        $res = $this->cloudkey->media->remove_asset(array('id' => $media->id, 'preset' => 'source'));
+        $this->assertNull($res);
+
+        $wait = 10;
+        while($wait--)
+        {
+            // Will throw CloudKey_NotFoundException when effectively removed
+            $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'source'));
+            sleep(1);
+        }
+    }
+
+    public function testProcessAsset()
+    {
+        $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
+        $media = $this->cloudkey->media->create();
+        $this->cloudkey->media->set_asset(array('id' => $media->id, 'preset' => 'source', 'url' => $file->url));
+
+        // Don't wait for source asset to be ready, the API should handle the dependancy by itself
+        $res = $this->cloudkey->media->process_asset(array('id' => $media->id, 'preset' => 'flv_h263_mp3'));
+        $this->assertNull($res);
+        $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'flv_h263_mp3'));
+        $this->assertEquals($res->status, 'pending');
+
+        $res = $this->cloudkey->media->process_asset(array('id' => $media->id, 'preset' => 'mp4_h264_aac'));
+        $this->assertNull($res);
+        $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'mp4_h264_aac'));
+        $this->assertEquals($res->status, 'pending');
+
+        $res = $this->waitAssetReady($media->id, 'flv_h263_mp3');
+        $this->assertTrue($res);
+        $res = $this->waitAssetReady($media->id, 'mp4_h264_aac');
+        $this->assertTrue($res);
+
+        $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'flv_h263_mp3'));
+        $this->assertEquals($res->status, 'ready');
+        $this->assertObjectHasAttribute('duration', $res);
+        $this->assertObjectHasAttribute('filesize', $res);
+        $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'flv_h263_mp3'));
+        $this->assertEquals($res->status, 'ready');
+        $this->assertObjectHasAttribute('duration', $res);
+        $this->assertObjectHasAttribute('filesize', $res);
     }
 }

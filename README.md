@@ -4,11 +4,11 @@ call the `count` method from the `media` namespace, the code would be as
 follow:
 
     $cloudkey = new CloudKey($username, $password);
-    $cloudkey->media->reset();
+    $result = $cloudkey->media->count();
 
 To pass arguments to method, an associative array is passed as a first argument of the called method:
 
-    $cloudkey->media->delete(array('id' => $a_media_id));
+    $media = $cloudkey->media->info(array('id' => $a_media_id));
 
 When method returns something, the result is either an `stdClass` instance when result is a
 structure or an array of `stdClass` instances when result is a list:

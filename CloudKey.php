@@ -159,7 +159,7 @@ class CloudKey_Api
             $params = $args[0];
         }
 
-        if ($this->extra_params !== null)
+        if (is_array($this->extra_params) && !empty($this->extra_params))
         {
             if ($params === null)
             {

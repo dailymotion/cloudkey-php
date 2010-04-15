@@ -187,18 +187,14 @@ class CloudKey_Api
 
         if ($params !== null)
         {
-            if (true)
+            foreach ($params as $key => $value)
             {
-                $url .= '?' . http_build_query($params);
+                if (!is_scalar($value))
+                {
+                    $params[$key] = json_encode($value);
+                }
             }
-            else
-            {
-                curl_setopt_array($ch, array
-                (
-                    CURLOPT_POST => true,
-                    CURLOPT_POSTFIELDS => $params,
-                ));
-            }
+            $url .= '?' . http_build_query($params);
         }
 
         curl_setopt_array($ch, array

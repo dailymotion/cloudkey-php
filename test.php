@@ -222,6 +222,25 @@ class CloudKey_MediaTestBase extends PHPUnit_Framework_TestCase
             $this->cloudkey->media->reset();
         }
     }
+
+    public function waitAssetReady($media_id, $asset_name, $wait = 60)
+    {
+        while ($wait--)
+        {
+            $asset = $this->cloudkey->media->get_asset(array('id' => $media_id, 'preset' => $asset_name));
+            if ($asset->status !== 'ready')
+            {
+                if ($asset->status === 'error')
+                {
+                    return false;
+                }
+                sleep(1);
+                continue;
+            }
+            return true;
+        }
+        throw new Exception('timeout exceeded');
+    }
 }
 
 class CloudKey_MediaTest extends CloudKey_MediaTestBase
@@ -418,25 +437,6 @@ class CloudKey_MediaMetaTest extends CloudKey_MediaTestBase
 
 class CloudKey_MediaAssetTest extends CloudKey_MediaTestBase
 {
-    public function waitAssetReady($media_id, $asset_name, $wait = 60)
-    {
-        while ($wait--)
-        {
-            $asset = $this->cloudkey->media->get_asset(array('id' => $media_id, 'preset' => $asset_name));
-            if ($asset->status !== 'ready')
-            {
-                if ($asset->status === 'error')
-                {
-                    return false;
-                }
-                sleep(1);
-                continue;
-            }
-            return true;
-        }
-        throw new Exception('timeout exceeded');
-    }
-
     public function testSetAsset()
     {
         $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
@@ -508,5 +508,64 @@ class CloudKey_MediaAssetTest extends CloudKey_MediaTestBase
         $this->assertEquals($res->status, 'ready');
         $this->assertObjectHasAttribute('duration', $res);
         $this->assertObjectHasAttribute('filesize', $res);
+    }
+}
+
+class CloudKey_MediaPublishTest extends CloudKey_MediaTestBase
+{
+    public function testPublish()
+    {
+        $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
+        $presets = array('flv_h263_mp3', 'mp4_h264_aac', 'flv_h263_mp3_ld', 'jpeg_thumbnail_small', 'jpeg_thumbnail_medium', 'jpeg_thumbnail_large');
+        $media = $this->cloudkey->media->publish(array('presets' => $presets, 'url' => $file->url));
+
+        foreach ($presets as $preset)
+        {
+            $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => $preset));
+            $this->assertEquals($res->status, 'pending');
+        }
+
+        foreach ($presets as $preset)
+        {
+            $this->waitAssetReady($media->id, $preset);
+        }
+
+        foreach ($presets as $preset)
+        {
+            $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => $preset));
+            $this->assertObjectHasAttribute('status', $res);
+            $this->assertObjectHasAttribute('duration', $res);
+            $this->assertObjectHasAttribute('filesize', $res);
+            $this->assertEquals($res->status, 'ready');
+        }
+    }
+
+    public function testPublishSourceError()
+    {
+        $presets = array('flv_h263_mp3', 'mp4_h264_aac', 'flv_h263_mp3_ld');
+        $media = $this->cloudkey->media->publish(array('presets' => $presets, 'url' => 'http://localhost/'));
+
+        foreach ($presets as $preset)
+        {
+            $res = $this->waitAssetReady($media->id, $preset);
+            $this->assertFalse($res);
+            $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => $preset));
+            $this->assertEquals($res->status, 'error');
+        }
+    }
+
+    public function testPublishUrlError()
+    {
+        $file = $this->cloudkey->file->upload_file('.fixtures/broken_video.avi');
+        $presets = array('flv_h263_mp3', 'mp4_h264_aac', 'flv_h263_mp3_ld');
+        $media = $this->cloudkey->media->publish(array('presets' => $presets, 'url' => $file->url));
+
+        foreach ($presets as $preset)
+        {
+            $res = $this->waitAssetReady($media->id, $preset);
+            $this->assertFalse($res);
+            $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => $preset));
+            $this->assertEquals($res->status, 'error');
+        }
     }
 }

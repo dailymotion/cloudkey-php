@@ -442,7 +442,8 @@ class CloudKey_MediaAssetTest extends CloudKey_MediaTestBase
         $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
         $media = $this->cloudkey->media->create();
         $res = $this->cloudkey->media->set_asset(array('id' => $media->id, 'preset' => 'source', 'url' => $file->url));
-        $this->assertNull($res);
+        $this->assertType('object', $res);
+        $this->assertEquals($res->status, 'queued');
 
         $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'source'));
         $this->assertObjectHasAttribute('status', $res);
@@ -462,12 +463,13 @@ class CloudKey_MediaAssetTest extends CloudKey_MediaTestBase
     {
         $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
         $media = $this->cloudkey->media->create();
-        $res = $this->cloudkey->media->set_asset(array('id' => $media->id, 'preset' => 'source', 'url' => $file->url));
+        $this->cloudkey->media->set_asset(array('id' => $media->id, 'preset' => 'source', 'url' => $file->url));
         $res = $this->waitAssetReady($media->id, 'source');
         $this->assertTrue($res);
 
         $res = $this->cloudkey->media->remove_asset(array('id' => $media->id, 'preset' => 'source'));
-        $this->assertNull($res);
+        $this->assertType('object', $res);
+        $this->assertEquals($res->status, 'queued');
 
         $wait = 10;
         while($wait--)
@@ -486,12 +488,14 @@ class CloudKey_MediaAssetTest extends CloudKey_MediaTestBase
 
         // Don't wait for source asset to be ready, the API should handle the dependancy by itself
         $res = $this->cloudkey->media->process_asset(array('id' => $media->id, 'preset' => 'flv_h263_mp3'));
-        $this->assertNull($res);
+        $this->assertType('object', $res);
+        $this->assertEquals($res->status, 'queued');
         $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'flv_h263_mp3'));
         $this->assertEquals($res->status, 'pending');
 
         $res = $this->cloudkey->media->process_asset(array('id' => $media->id, 'preset' => 'mp4_h264_aac'));
-        $this->assertNull($res);
+        $this->assertType('object', $res);
+        $this->assertEquals($res->status, 'queued');
         $res = $this->cloudkey->media->get_asset(array('id' => $media->id, 'preset' => 'mp4_h264_aac'));
         $this->assertEquals($res->status, 'pending');
 

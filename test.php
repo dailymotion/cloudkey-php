@@ -1,6 +1,7 @@
 #!/usr/bin/env phpunit
 <?php
 
+$base_url = null;
 $username = null;
 $password = null;
 
@@ -67,22 +68,23 @@ class CloudKeyTest extends PHPUnit_Framework_TestCase
      */
     public function testAnonymous()
     {
-        $cloudkey = new CloudKey(null, null);
+        global $base_url;
+        $cloudkey = new CloudKey(null, null, $base_url);
         $cloudkey->user->whoami();
     }
 
     public function testNormalUser()
     {
-        global $username, $password;
-        $cloudkey = new CloudKey($username, $password);
+        global $username, $password, $base_url;
+        $cloudkey = new CloudKey($username, $password, $base_url);
         $res = $cloudkey->user->whoami();
         $this->assertEquals($res->username, $username);
     }
 
     public function testNormalUserSu()
     {
-        global $username, $password, $switch_user;
-        $cloudkey = new CloudKey($username, $password);
+        global $username, $password, $base_url, $switch_user;
+        $cloudkey = new CloudKey($username, $password, $base_url);
         $cloudkey->act_as_user($switch_user);
         $res = $cloudkey->user->whoami();
         $this->assertEquals($res->username, $username);
@@ -90,8 +92,8 @@ class CloudKeyTest extends PHPUnit_Framework_TestCase
 
     public function testSuperUserSu()
     {
-        global $root_username, $root_password, $switch_user;
-        $cloudkey = new CloudKey($root_username, $root_password);
+        global $root_username, $root_password, $base_url, $switch_user;
+        $cloudkey = new CloudKey($root_username, $root_password, $base_url);
         $cloudkey->act_as_user($switch_user);
         $res = $cloudkey->user->whoami();
         $this->assertEquals($switch_user, $res->username);
@@ -102,8 +104,8 @@ class CloudKeyTest extends PHPUnit_Framework_TestCase
      */
     public function testSuperUserSuWrongUser()
     {
-        global $root_username, $root_password, $switch_user;
-        $cloudkey = new CloudKey($root_username, $root_password);
+        global $root_username, $root_password, $base_url, $switch_user;
+        $cloudkey = new CloudKey($root_username, $root_password, $base_url);
         $cloudkey->act_as_user('unexisting_user');
         $res = $cloudkey->user->whoami();
     }
@@ -116,13 +118,13 @@ class CloudKey_UserTest extends PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        global $username, $password;
+        global $username, $password, $base_url;
         if (!$username || !$password)
         {
             $this->markTestSkipped('Missing test configuration');
             return;
         }
-        $this->cloudkey = new CloudKey($username, $password);
+        $this->cloudkey = new CloudKey($username, $password, $base_url);
     }
 
     public function testWhoami()
@@ -143,7 +145,7 @@ class CloudKey_FileTest extends PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        global $username, $password;
+        global $username, $password, $base_url;
         if (!$username || !$password)
         {
             $this->markTestSkipped('Missing test configuration');
@@ -154,7 +156,7 @@ class CloudKey_FileTest extends PHPUnit_Framework_TestCase
             $this->markTestSkipped('Missing fixtures, please do `git submodule init; git submodule update\'');
             return;
         }
-        $this->cloudkey = new CloudKey($username, $password);
+        $this->cloudkey = new CloudKey($username, $password, $base_url);
         $this->cloudkey->media->reset();
     }
 
@@ -205,13 +207,13 @@ class CloudKey_MediaTestBase extends PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        global $username, $password;
+        global $username, $password, $base_url;
         if (!$username || !$password)
         {
             $this->markTestSkipped('Missing test configuration');
             return;
         }
-        $this->cloudkey = new CloudKey($username, $password);
+        $this->cloudkey = new CloudKey($username, $password, $base_url);
         $this->cloudkey->media->reset();
     }
 

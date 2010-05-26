@@ -19,7 +19,7 @@ structure or an array of `stdClass` instances when result is a list:
 
     // List of structures response type
     $media_list = $cloudkey->media->list();
-    for ($media in $media_list)
+    foreach ($media_list as $media)
     {
         echo $media->id;
     }

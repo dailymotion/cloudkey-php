@@ -1,5 +1,12 @@
 <?php
 
+define('CLOUDKEY_SECLECEL_NONE',      0);
+define('CLOUDKEY_SECLECEL_DELEGATE',  1 << 0);
+define('CLOUDKEY_SECLECEL_ASNUM',     1 << 1);
+define('CLOUDKEY_SECLECEL_IP',        1 << 2);
+define('CLOUDKEY_SECLECEL_USERAGENT', 1 << 3);
+define('CLOUDKEY_SECLECEL_USEONCE',   1 << 4);
+
 class CloudKey
 {
     private
@@ -71,6 +78,20 @@ class CloudKey_User extends CloudKey_Api
 
 class CloudKey_Media extends CloudKey_Api
 {
+    function get_stream_url($args)
+    {
+        $id = null;
+        $format = 'swf';
+        $seclevel = null;
+        $expires = null;
+        $asnum = null;
+        $ip = null;
+        $useragent = null;
+        extract($args);
+        $user = $this->parent->user->whoami();
+        $url = sprintf('%s/%s/stream/%s/%s', $this->base_url, $format, $user->id, $id);
+        return $this->_sign_url($url, $user->api_key, $seclevel, $asnum, $ip, $useragent, $expires);
+    }
 }
 
 class CloudKey_File extends CloudKey_Api
@@ -271,6 +292,53 @@ class CloudKey_Api
                     throw new CloudKey_Exception($status_code);
                 }
         }
+    }
+
+    protected function _sign_url($url, $secret, $seclevel=null, $asnum=null, $ip=null, $useragent=null, $expires=null)
+    {
+        $seclevel = $seclevel || CLOUDKEY_SECLECEL_NONE;
+        $expires  = (int)($expires or 0);
+
+        // Compute digest
+        list($url, $query) = @explode('?', $url, 2);
+        $secparams = '';
+        if (!($seclevel & CLOUDKEY_SECLECEL_DELEGATE))
+        {
+            if ($seclevel & CLOUDKEY_SECLECEL_ASNUM)
+            {
+                if (!isset($asnum))
+                {
+                    throw new InvalidArgumentException('ASNUM security level required and no AS number provided.');
+                }
+                $secparams += $asnum;
+            }
+            if ($seclevel & CLOUDKEY_SECLECEL_IP)
+            {
+                if (!isset($asnum))
+                {
+                    throw new InvalidArgumentException('IP security level required and no IP address provided.');
+                }
+                $secparams += $ip;
+            }
+            if ($seclevel & CLOUDKEY_SECLECEL_USERAGENT)
+            {
+                if (!isset($asnum))
+                {
+                    throw new InvalidArgumentException('USERAGENT security level required and no user-agent provided.');
+                }
+                $secparams += $useragent;
+            }
+        }
+        $rand = '';
+        $randLetters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        for ($i = 0; $i < 8; $i++)
+        {
+            $rand .= $randLetters[rand(0, 36)];
+        }
+        $digest = md5(implode('', array($seclevel, $url, $expires, $rand, $secret, $secparams)));
+
+        // Return signed URL
+        return sprintf('%s?%sauth=%s-%s-%s-%s', $url, ($query ? $query . '&' : ''), $expires, $seclevel, $rand, $digest);
     }
 }
 

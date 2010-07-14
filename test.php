@@ -562,7 +562,7 @@ class CloudKey_MediaPublishTest extends CloudKey_MediaTestBase
 
     public function testPublishUrlError()
     {
-        $file = $this->cloudkey->file->upload_file('.fixtures/broken_video.avi');
+        $file = $this->cloudkey->file->upload_file('.fixtures/broken.avi');
         $presets = array('flv_h263_mp3', 'mp4_h264_aac', 'flv_h263_mp3_ld');
         $media = $this->cloudkey->media->publish(array('presets' => $presets, 'url' => $file->url));
 

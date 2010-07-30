@@ -1,11 +1,11 @@
 <?php
 
-define('CLOUDKEY_SECLECEL_NONE',      0);
-define('CLOUDKEY_SECLECEL_DELEGATE',  1 << 0);
-define('CLOUDKEY_SECLECEL_ASNUM',     1 << 1);
-define('CLOUDKEY_SECLECEL_IP',        1 << 2);
-define('CLOUDKEY_SECLECEL_USERAGENT', 1 << 3);
-define('CLOUDKEY_SECLECEL_USEONCE',   1 << 4);
+define('CLOUDKEY_SECLEVEL_NONE',      0);
+define('CLOUDKEY_SECLEVEL_DELEGATE',  1 << 0);
+define('CLOUDKEY_SECLEVEL_ASNUM',     1 << 1);
+define('CLOUDKEY_SECLEVEL_IP',        1 << 2);
+define('CLOUDKEY_SECLEVEL_USERAGENT', 1 << 3);
+define('CLOUDKEY_SECLEVEL_USEONCE',   1 << 4);
 
 class CloudKey
 {
@@ -16,14 +16,16 @@ class CloudKey
         $username = null,
         $password = null,
         $base_url = null,
+        $cdn_url  = null,
         $proxy = null,
         $act_as_user = null;
 
-    function __construct($username, $password, $base_url = null, $proxy = null)
+    function __construct($username, $password, $base_url = null, $cdn_url = null, $proxy = null)
     {
         $this->username = $username;
         $this->password = $password;
         $this->base_url = $base_url;
+        $this->cdn_url  = $cdn_url;
         $this->proxy = $proxy;
     }
 
@@ -46,7 +48,7 @@ class CloudKey
             {
                 throw new CloudKey_InvalidNamespaceException($name);
             }
-            $this->namespaces[$name] = new $class($this->username, $this->password, $this->base_url, null, $this->proxy);
+            $this->namespaces[$name] = new $class($this->username, $this->password, $this->base_url, $this->cdn_url, null, $this->proxy);
             $this->namespaces[$name]->parent = $this;
             if ($this->act_as_user)
             {
@@ -78,18 +80,33 @@ class CloudKey_User extends CloudKey_Api
 
 class CloudKey_Media extends CloudKey_Api
 {
-    function get_stream_url($args)
+    function get_embed_url($args)
     {
         $id = null;
-        $format = 'swf';
-        $seclevel = null;
+        $seclevel = CLOUDKEY_SECLEVEL_NONE;
         $expires = null;
         $asnum = null;
         $ip = null;
         $useragent = null;
         extract($args);
         $user = $this->parent->user->whoami();
-        $url = sprintf('%s/%s/stream/%s/%s', $this->base_url, $format, $user->id, $id);
+        $url = sprintf('%s/embed/%s/%s', $this->base_url, $user->id, $id);
+        return $this->_sign_url($url, $user->api_key, $seclevel, $asnum, $ip, $useragent, $expires);
+    }
+
+    function get_stream_url($args)
+    {
+        $id = null;
+        $preset = 'mp4_h264_aac';
+        $seclevel = CLOUDKEY_SECLEVEL_NONE;
+        $expires = null;
+        $asnum = null;
+        $ip = null;
+        $useragent = null;
+        extract($args);
+        $user = $this->parent->user->whoami();
+        $parts = explode('_', $preset);
+        $url = sprintf('%s/route/%s/%s/%s.%s', $this->cdn_url, $user->id, $id, $preset, $parts[0]);
         return $this->_sign_url($url, $user->api_key, $seclevel, $asnum, $ip, $useragent, $expires);
     }
 }
@@ -139,6 +156,7 @@ class CloudKey_Api
         $username = null,
         $password = null,
         $base_url = 'http://api.dmcloud.net',
+        $cdn_url  = 'http://cdn.dmcloud.net',
         $namespace = null,
         $proxy = null;
 
@@ -147,7 +165,7 @@ class CloudKey_Api
         $connect_timeout = 120,
         $response_timeout = 120;
 
-    function __construct($username, $password, $base_url = null, $namespace = null, $proxy = null)
+    function __construct($username, $password, $base_url = null, $cdn_url = null, $namespace = null, $proxy = null)
     {
         $this->username = $username;
         $this->password = $password;
@@ -157,6 +175,10 @@ class CloudKey_Api
         if ($base_url !== null)
         {
             $this->base_url = $base_url;
+        }
+        if ($cdn_url !== null)
+        {
+            $this->cdn_url = $cdn_url;
         }
 
         if (get_class($this) !== 'CloudKey_Api' && $namespace === null)
@@ -294,17 +316,17 @@ class CloudKey_Api
         }
     }
 
-    protected function _sign_url($url, $secret, $seclevel=null, $asnum=null, $ip=null, $useragent=null, $expires=null)
+    protected function _sign_url($url, $secret, $seclevel=0, $asnum=null, $ip=null, $useragent=null, $expires=null)
     {
-        $seclevel = $seclevel || CLOUDKEY_SECLECEL_NONE;
-        $expires  = (int)($expires or 0);
+        $seclevel = $seclevel || CLOUDKEY_SECLEVEL_NONE;
+        $expires  = intval($expires == null ? time() + 7200 : $expires);
 
         // Compute digest
-        list($url, $query) = @explode('?', $url, 2);
+        @list($url, $query) = @explode('?', $url, 2);
         $secparams = '';
-        if (!($seclevel & CLOUDKEY_SECLECEL_DELEGATE))
+        if (!($seclevel & CLOUDKEY_SECLEVEL_DELEGATE))
         {
-            if ($seclevel & CLOUDKEY_SECLECEL_ASNUM)
+            if ($seclevel & CLOUDKEY_SECLEVEL_ASNUM)
             {
                 if (!isset($asnum))
                 {
@@ -312,7 +334,7 @@ class CloudKey_Api
                 }
                 $secparams += $asnum;
             }
-            if ($seclevel & CLOUDKEY_SECLECEL_IP)
+            if ($seclevel & CLOUDKEY_SECLEVEL_IP)
             {
                 if (!isset($asnum))
                 {
@@ -320,7 +342,7 @@ class CloudKey_Api
                 }
                 $secparams += $ip;
             }
-            if ($seclevel & CLOUDKEY_SECLECEL_USERAGENT)
+            if ($seclevel & CLOUDKEY_SECLEVEL_USERAGENT)
             {
                 if (!isset($asnum))
                 {
@@ -329,16 +351,16 @@ class CloudKey_Api
                 $secparams += $useragent;
             }
         }
-        $rand = '';
-        $randLetters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        $rand    = '';
+        $letters = 'abcdefghijklmnopqrstuvwxyz0123456789';
         for ($i = 0; $i < 8; $i++)
         {
-            $rand .= $randLetters[rand(0, 36)];
+            $rand .= $letters[rand(0, 35)];
         }
         $digest = md5(implode('', array($seclevel, $url, $expires, $rand, $secret, $secparams)));
 
         // Return signed URL
-        return sprintf('%s?%sauth=%s-%s-%s-%s', $url, ($query ? $query . '&' : ''), $expires, $seclevel, $rand, $digest);
+        return sprintf('%s?%sauth=%s-%d-%s-%s', $url, ($query ? $query . '&' : ''), $expires, $seclevel, $rand, $digest);
     }
 }
 

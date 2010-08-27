@@ -114,10 +114,16 @@ class CloudKey_Media extends CloudKey_Api
         $asnum = null;
         $ip = null;
         $useragent = null;
+        $extension = '';
+        $download = false;
         extract($args);
-        $parts = explode('_', $preset);
-        $url = sprintf('%s/route/%s/%s/%s.%s', $this->cdn_url, $this->owner_id, $id, $preset, $parts[0]);
-        return $this->_sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $expires);
+        if ($extension == '')
+        {
+            $parts = explode('_', $preset);
+            $extension = ($parts[0] != $preset) ? $parts[0] : $extension;
+        }
+        $url = sprintf('%s/route/%s/%s/%s%s', $this->cdn_url, $this->owner_id, $id, $preset, $extension != '' ? ".$extension" : '');
+        return $this->_sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
     }
 }
 
@@ -336,12 +342,10 @@ class CloudKey_Api
         }
     }
 
-    protected function _sign_url($url, $secret, $seclevel=0, $asnum=null, $ip=null, $useragent=null, $expires=null)
+    protected function _sign_url($url, $secret, $seclevel=CLOUDKEY_SECLEVEL_NONE, $asnum=null, $ip=null, $useragent=null, $expires=null)
     {
-        $seclevel = $seclevel || CLOUDKEY_SECLEVEL_NONE;
-        $expires  = intval($expires == null ? time() + 7200 : $expires);
-
         // Compute digest
+        $expires = intval($expires == null ? time() + 7200 : $expires);
         @list($url, $query) = @explode('?', $url, 2);
         $secparams = '';
         if (!($seclevel & CLOUDKEY_SECLEVEL_DELEGATE))

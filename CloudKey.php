@@ -6,6 +6,8 @@ define('CLOUDKEY_SECLEVEL_ASNUM',     1 << 1);
 define('CLOUDKEY_SECLEVEL_IP',        1 << 2);
 define('CLOUDKEY_SECLEVEL_USERAGENT', 1 << 3);
 define('CLOUDKEY_SECLEVEL_USEONCE',   1 << 4);
+define('CLOUDKEY_SECLEVEL_COUNTRY',   1 << 5);
+define('CLOUDKEY_SECLEVEL_REFERER',   1 << 6);
 
 class CloudKey
 {
@@ -114,6 +116,8 @@ class CloudKey_Media extends CloudKey_Api
         $asnum = null;
         $ip = null;
         $useragent = null;
+        $countries = null;
+        $referers = null;
         $extension = '';
         $download = false;
         extract($args);
@@ -123,7 +127,7 @@ class CloudKey_Media extends CloudKey_Api
             $extension = ($parts[0] != $preset) ? $parts[0] : $extension;
         }
         $url = sprintf('%s/route/%s/%s/%s%s', $this->cdn_url, $this->owner_id, $id, $preset, $extension != '' ? ".$extension" : '');
-        return $this->_sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
+        return $this->_sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
     }
 }
 
@@ -342,12 +346,13 @@ class CloudKey_Api
         }
     }
 
-    protected function _sign_url($url, $secret, $seclevel=CLOUDKEY_SECLEVEL_NONE, $asnum=null, $ip=null, $useragent=null, $expires=null)
+    protected function _sign_url($url, $secret, $seclevel=CLOUDKEY_SECLEVEL_NONE, $asnum=null, $ip=null, $useragent=null, $countries=null, $referers=null, $expires=null)
     {
         // Compute digest
         $expires = intval($expires == null ? time() + 7200 : $expires);
         @list($url, $query) = @explode('?', $url, 2);
         $secparams = '';
+        $public_secparams = array();
         if (!($seclevel & CLOUDKEY_SECLEVEL_DELEGATE))
         {
             if ($seclevel & CLOUDKEY_SECLEVEL_ASNUM)
@@ -374,6 +379,48 @@ class CloudKey_Api
                 }
                 $secparams += $useragent;
             }
+            if ($seclevel & CLOUDKEY_SECLEVEL_COUNTRY)
+            {
+                if (!isset($countries) || count($countries) === 0)
+                {
+                    throw new InvalidArgumentException('COUNTRY security level required and no country list provided.');
+                }
+                if (!is_array($countries))
+                {
+                    throw new InvalidArgumentException('Invalid format for COUNTRY, should be an array of country codes.');
+                }
+                if ($countries[0] === '-')
+                {
+                    array_shift($countries);
+                    $countries = '-' . implode(',', $countries);
+                }
+                else
+                {
+                    $countries = implode(',', $countries);
+                }
+                if (!preg_match('/^-(?:[a-zA-Z]{2})(:?,[a-zA-Z]{2})*$/', $countries))
+                {
+                    throw new InvalidArgumentException('Invalid format for COUNTRY security level parameter.');
+                }
+                $public_secparams[] = 'cc=' . strtolower($useragent);
+            }
+            if ($seclevel & CLOUDKEY_SECLEVEL_REFERER)
+            {
+                if (!isset($referers) || count($referers) === 0)
+                {
+                    throw new InvalidArgumentException('REFERER security level required and no referer list provided.');
+                }
+                if (!array($referers))
+                {
+                    throw new InvalidArgumentException('Invalid format for REFERER, should be a list of url strings.');
+                }
+                $public_secparams[] = 'rf=' . urlencode(implode(' ', array_map(create_function('$r', 'return str_replace(" ", "%20", $r);'), $referers)));
+            }
+        }
+        $public_secparams_encoded = '';
+        if (count($public_secparams) > 0)
+        {
+            $public_secparams_encoded = base64_encode(gzcompress(implode('&', $public_secparams)));
         }
         $rand    = '';
         $letters = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -381,10 +428,10 @@ class CloudKey_Api
         {
             $rand .= $letters[rand(0, 35)];
         }
-        $digest = md5(implode('', array($seclevel, $url, $expires, $rand, $secret, $secparams)));
+        $digest = md5(implode('', array($seclevel, $url, $expires, $rand, $secret, $secparams, $public_secparams_encoded)));
 
         // Return signed URL
-        return sprintf('%s?%sauth=%s-%d-%s-%s', $url, ($query ? $query . '&' : ''), $expires, $seclevel, $rand, $digest);
+        return sprintf('%s?%sauth=%s-%d-%s-%s%s', $url, ($query ? $query . '&' : ''), $expires, $seclevel, $rand, $digest, ($public_secparams_encoded ? '-' . $public_secparams_encoded : ''));
     }
 }
 

@@ -2,13 +2,8 @@
 <?php
 
 $base_url = null;
-$username = null;
-$password = null;
-
-$skip_su = true;
-$root_username = null;
-$root_password = null;
-$switch_user = null;
+$user_id = null;
+$api_key = null;
 
 @include 'local_config.php';
 
@@ -21,18 +16,8 @@ if (!function_exists('readline'))
     }
 }
 
-if (!$username) $username = readline('Username: ');
-if (!$password) $password = readline('Password: ');
-if (!$skip_su && !$root_username) $root_username = readline('Root Username (optional): ');
-if ($root_username)
-{
-    if (!$root_password) $root_password = readline('Root Password: ');
-    if (!$switch_user) $switch_user = readline('SU Username: ');
-}
-else
-{
-    if (!$skip_su) echo "SU tests will be skipped";
-}
+if (!$user_id) $user_id = readline('User Id: ');
+if (!$api_key) $api_key = readline('API Key: ');
 
 require_once 'PHPUnit/Framework.php';
 require_once 'CloudKey.php';
@@ -56,18 +41,19 @@ class CloudKeyTest extends PHPUnit_Framework_TestCase
 {
     protected function setUp()
     {
-        global $username, $password, $root_username, $root_password, $switch_user;
-        if (!$username || !$password || !$root_username || !$root_password || !$switch_user)
+        global $user_id, $api_key;
+        if (!$user_id || !$api_key)
         {
             $this->markTestSkipped('Missing test configuration');
         }
     }
 
     /**
-     * @expectedException CloudKey_AuthorizationRequiredException
+     * @expectedException CloudKey_AuthenticationErrorException
      */
     public function testAnonymous()
     {
+
         global $base_url;
         $cloudkey = new CloudKey(null, null, $base_url);
         $cloudkey->user->whoami();
@@ -75,39 +61,10 @@ class CloudKeyTest extends PHPUnit_Framework_TestCase
 
     public function testNormalUser()
     {
-        global $username, $password, $base_url;
-        $cloudkey = new CloudKey($username, $password, $base_url);
+        global $user_id, $api_key, $base_url;
+        $cloudkey = new CloudKey($user_id, $api_key, $base_url);
         $res = $cloudkey->user->whoami();
-        $this->assertEquals($res->username, $username);
-    }
-
-    public function testNormalUserSu()
-    {
-        global $username, $password, $base_url, $switch_user;
-        $cloudkey = new CloudKey($username, $password, $base_url);
-        $cloudkey->act_as_user($switch_user);
-        $res = $cloudkey->user->whoami();
-        $this->assertEquals($res->username, $username);
-    }
-
-    public function testSuperUserSu()
-    {
-        global $root_username, $root_password, $base_url, $switch_user;
-        $cloudkey = new CloudKey($root_username, $root_password, $base_url);
-        $cloudkey->act_as_user($switch_user);
-        $res = $cloudkey->user->whoami();
-        $this->assertEquals($switch_user, $res->username);
-    }
-
-    /**
-     * @expectedException CloudKey_AuthenticationFailedException
-     */
-    public function testSuperUserSuWrongUser()
-    {
-        global $root_username, $root_password, $base_url, $switch_user;
-        $cloudkey = new CloudKey($root_username, $root_password, $base_url);
-        $cloudkey->act_as_user('unexisting_user');
-        $res = $cloudkey->user->whoami();
+        $this->assertEquals($res->id, $user_id);
     }
 }
 
@@ -118,23 +75,23 @@ class CloudKey_UserTest extends PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        global $username, $password, $base_url;
-        if (!$username || !$password)
+        global $user_id, $api_key, $base_url;
+        if (!$user_id || !$api_key)
         {
             $this->markTestSkipped('Missing test configuration');
             return;
         }
-        $this->cloudkey = new CloudKey($username, $password, $base_url);
+        $this->cloudkey = new CloudKey($user_id, $api_key, $base_url);
     }
 
     public function testWhoami()
     {
-        global $username;
+        global $user_id;
         $res = $this->cloudkey->user->whoami();
         $this->assertType('object', $res);
         $this->assertObjectHasAttribute('id', $res);
         $this->assertObjectHasAttribute('username', $res);
-        $this->assertEquals($res->username, $username);
+        $this->assertEquals($res->id, $user_id);
     }
 }
 
@@ -145,8 +102,8 @@ class CloudKey_FileTest extends PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        global $username, $password, $base_url;
-        if (!$username || !$password)
+        global $user_id, $api_key, $base_url;
+        if (!$user_id || !$api_key)
         {
             $this->markTestSkipped('Missing test configuration');
             return;
@@ -156,7 +113,7 @@ class CloudKey_FileTest extends PHPUnit_Framework_TestCase
             $this->markTestSkipped('Missing fixtures, please do `git submodule init; git submodule update\'');
             return;
         }
-        $this->cloudkey = new CloudKey($username, $password, $base_url);
+        $this->cloudkey = new CloudKey($user_id, $api_key, $base_url);
         $this->cloudkey->media->reset();
     }
 
@@ -207,13 +164,13 @@ class CloudKey_MediaTestBase extends PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        global $username, $password, $base_url;
-        if (!$username || !$password)
+        global $user_id, $api_key, $base_url;
+        if (!$user_id || !$api_key)
         {
             $this->markTestSkipped('Missing test configuration');
             return;
         }
-        $this->cloudkey = new CloudKey($username, $password, $base_url);
+        $this->cloudkey = new CloudKey($user_id, $api_key, $base_url);
         $this->cloudkey->media->reset();
     }
 
@@ -250,9 +207,7 @@ class CloudKey_MediaTest extends CloudKey_MediaTestBase
     public function testCreate()
     {
         $res = $this->cloudkey->media->create();
-        $this->assertType('object', $res);
-        $this->assertObjectHasAttribute('id', $res);
-        $this->assertEquals(strlen($res->id), 24);
+        $this->assertEquals(strlen($res), 24);
     }
 
     public function testInfo()
@@ -319,9 +274,7 @@ class CloudKey_MediaMetaTest extends CloudKey_MediaTestBase
         $this->assertNull($res);
 
         $res = $this->cloudkey->media->get_meta(array('id' => $media->id, 'key' => 'mykey'));
-        $this->assertType('object', $res);
-        $this->assertObjectHasAttribute('value', $res);
-        $this->assertEquals($res->value, 'my_value');
+        $this->assertEquals($res, 'my_value');
     }
 
     /**
@@ -343,7 +296,7 @@ class CloudKey_MediaMetaTest extends CloudKey_MediaTestBase
     }
 
     /**
-     * @expectedException CloudKey_MissingParamException
+     * @expectedException CloudKey_InvalidParamException
      */
     public function testSetMetaMissingArgKey()
     {
@@ -352,7 +305,7 @@ class CloudKey_MediaMetaTest extends CloudKey_MediaTestBase
     }
 
     /**
-     * @expectedException CloudKey_MissingParamException
+     * @expectedException CloudKey_InvalidParamException
      */
     public function testSetMetaMissingArgValue()
     {
@@ -361,7 +314,7 @@ class CloudKey_MediaMetaTest extends CloudKey_MediaTestBase
     }
 
     /**
-     * @expectedException CloudKey_MissingParamException
+     * @expectedException CloudKey_InvalidParamException
      */
     public function testSetMetaMissingArgKeyAndValue()
     {
@@ -380,9 +333,7 @@ class CloudKey_MediaMetaTest extends CloudKey_MediaTestBase
         $this->assertNull($res);
 
         $res = $this->cloudkey->media->get_meta(array('id' => $media->id, 'key' => 'mykey'));
-        $this->assertType('object', $res);
-        $this->assertObjectHasAttribute('value', $res);
-        $this->assertEquals($res->value, 'new_value');
+        $this->assertEquals($res, 'new_value');
     }
 
     /**

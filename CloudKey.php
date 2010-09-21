@@ -12,57 +12,40 @@ define('CLOUDKEY_SECLEVEL_REFERER',   1 << 6);
 class CloudKey
 {
     private
-        $namespaces = array();
+        $services = array();
 
     protected
-        $username = null,
-        $password = null,
-        $base_url = null,
-        $cdn_url  = null,
-        $owner_id = null,
+        $user_id = null,
         $api_key = null,
-        $proxy = null,
-        $act_as_user = null;
+        $base_url = null,
+        $cdn_url = null,
+        $owner_id = null,
+        $proxy = null;
 
-    function __construct($username, $password, $base_url = null, $cdn_url = null, $owner_id = null, $api_key = null, $proxy = null)
+    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $owner_id = null, $proxy = null)
     {
-        $this->username = $username;
-        $this->password = $password;
+        $this->user_id = $user_id;
+        $this->api_key = $api_key;
         $this->base_url = $base_url;
-        $this->cdn_url  = $cdn_url;
+        $this->cdn_url = $cdn_url;
         $this->owner_id = $owner_id;
-        $this->api_key  = $api_key;
         $this->proxy = $proxy;
-    }
-
-    public function act_as_user($username)
-    {
-        $this->act_as_user = $username;
-        unset($this->namespaces['user']); // reset whoami cache
-        foreach ($this->namespaces as $namespace)
-        {
-            $namespace->extra_params['__user__'] = $this->act_as_user;
-        }
     }
 
     public function __get($name)
     {
-        if (!isset($this->namespaces[$name]))
+        if (!isset($this->services[$name]))
         {
             $class = 'CloudKey_' . ucfirst($name);
             if (!class_exists($class))
             {
                 throw new CloudKey_InvalidNamespaceException($name);
             }
-            $this->namespaces[$name] = new $class($this->username, $this->password, $this->base_url, $this->cdn_url, $this->owner_id, $this->api_key, null, $this->proxy);
-            $this->namespaces[$name]->parent = $this;
-            if ($this->act_as_user)
-            {
-                $this->namespaces[$name]->extra_params['__user__'] = $this->act_as_user;
-            }
+            $this->services[$name] = new $class($this->user_id, $this->api_key, $this->base_url, $this->cdn_url, $this->owner_id, null, $this->proxy);
+            $this->services[$name]->parent = $this;
         }
 
-        return $this->namespaces[$name];
+        return $this->services[$name];
     }
 
 }
@@ -86,7 +69,7 @@ class CloudKey_User extends CloudKey_Api
 
 class CloudKey_Media extends CloudKey_Api
 {
-    function get_embed_url($args)
+    public function get_embed_url($args)
     {
         if ($this->owner_id == null || $this->api_key == null)
         {
@@ -103,7 +86,7 @@ class CloudKey_Media extends CloudKey_Api
         return $this->_sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $expires);
     }
 
-    function get_stream_url($args)
+    public function get_stream_url($args)
     {
         if ($this->owner_id == null || $this->api_key == null)
         {
@@ -161,7 +144,7 @@ class CloudKey_File extends CloudKey_Api
 
         if (curl_errno($ch))
         {
-            throw new CloudKey_ProtocolException(curl_error($ch), curl_errno($ch));
+            throw new CloudKey_TransportException(curl_error($ch), curl_errno($ch));
         }
 
         curl_close($ch);
@@ -173,26 +156,24 @@ class CloudKey_File extends CloudKey_Api
 class CloudKey_Api
 {
     protected
-        $username = null,
-        $password = null,
+        $user_id = null,
+        $api_key = null,
+        $endpoint = null,
         $base_url = 'http://api.dmcloud.net',
-        $cdn_url  = 'http://cdn.dmcloud.net',
+        $cdn_url = 'http://cdn.dmcloud.net',
         $owner_id = null,
-        $api_key  = null,
-        $namespace = null,
+        $service = null,
         $proxy = null;
 
     public
-        $extra_params = null,
         $connect_timeout = 120,
         $response_timeout = 120;
 
-    function __construct($username, $password, $base_url = null, $cdn_url = null, $owner_id = null, $api_key = null, $namespace = null, $proxy = null)
+    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $owner_id = null, $service = null, $proxy = null)
     {
-        $this->username = $username;
-        $this->password = $password;
+        $this->user_id = $user_id;
+        $this->api_key = $api_key;
         $this->proxy = $proxy;
-        $this->extra_params = array();
 
         if ($base_url !== null)
         {
@@ -206,76 +187,65 @@ class CloudKey_Api
         {
             $this->owner_id = $owner_id;
         }
-        if ($api_key !== null)
-        {
-            $this->api_key = $api_key;
-        }
 
-        if (get_class($this) !== 'CloudKey_Api' && $namespace === null)
+        if (get_class($this) !== 'CloudKey_Api' && $service === null)
         {
-            $this->namespace = str_replace('cloudkey_', '', strtolower(get_class($this)));
+            $this->service = str_replace('cloudkey_', '', strtolower(get_class($this)));
         }
         else
         {
-            $this->namespace = $namespace;
+            $this->service = $service;
         }
+
+        $this->endpoint = $this->base_url . '/api';
     }
 
     public function __call($method, $args)
     {
-        $params = null;
         if (isset($args[0]))
         {
             if (!is_array($args[0]))
             {
                 throw new CloudKey_InvalidMethodException(sprintf('%s requires an array as first argument', $method));
             }
-            $params = $args[0];
+            $args = $args[0];
         }
-
-        if (is_array($this->extra_params) && !empty($this->extra_params))
+        else
         {
-            if ($params === null)
-            {
-                $params = $this->extra_params;
-            }
-            else
-            {
-                $params = array_merge($params, $this->extra_params);
-            }
+            unset($args);
         }
 
-        $path = $method;
+        $service = null;
         if (strpos($method, '__') !== FALSE)
         {
-            $path = str_replace('__', '/', $method);
+            list($service, $method) = explode('__', $method);
         }
-        elseif ($this->namespace !== null)
+        elseif ($this->service !== null)
         {
-            $path = $this->namespace . '/' . $method;
+            $service = $this->service;
         }
 
-        $url = sprintf('%s/json/%s', $this->base_url, $path);
+        $request = array
+        (
+            'service' => $service,
+            'method' => $method,
+        );
+
+        if (isset($args))
+        {
+            $request['args'] = $args;
+        }
+
+        $request['auth'] = $this->user_id . ':' . md5($this->user_id . $this->_normalize($request) . $this->api_key);
 
         $ch = curl_init();
 
-        if ($params !== null)
-        {
-            foreach ($params as $key => $value)
-            {
-                if (!is_scalar($value))
-                {
-                    $params[$key] = json_encode($value);
-                }
-            }
-            $url .= '?' . http_build_query($params);
-        }
-
         curl_setopt_array($ch, array
         (
-            CURLOPT_URL => $url,
+            CURLOPT_URL => $this->endpoint,
+            CURLOPT_HTTPHEADER => array('Content-Type: application/json'),
+            CURLOPT_POSTFIELDS => json_encode($request),
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER => false,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_CONNECTTIMEOUT => $this->connect_timeout,
             CURLOPT_TIMEOUT => $this->response_timeout,
@@ -286,64 +256,91 @@ class CloudKey_Api
             curl_setopt($ch, CURLOPT_PROXY, $this->proxy);
         }
 
-        if ($this->username !== null)
-        {
-            curl_setopt_array($ch, array
-            (
-                CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-                CURLOPT_USERPWD => sprintf('%s:%s', $this->username, $this->password),
-            ));
-        }
-
         $json_response = curl_exec($ch);
 
         if (curl_errno($ch))
         {
-            throw new CloudKey_ProtocolException(curl_error($ch), curl_errno($ch));
+            throw new CloudKey_TransportException(curl_error($ch), curl_errno($ch));
         }
 
         $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        switch ($status_code)
+        $response = json_decode($json_response);
+
+        if ($response === null)
         {
-            case 404:
-            case 400:
-                $result = json_decode($json_response);
-                if ($result === null)
-                {
-                    throw new BadMethodCallException($method);
-                }
-                switch ($result->type)
-                {
-                    case 'ApiNotFound':     throw new CloudKey_NotFoundException($method);
-                    case 'ApiMissingParam': throw new CloudKey_MissingParamException($method);
-                    case 'ApiInvalidParam': throw new CloudKey_InvalidParamException($method);
-                    default:                throw new CloudKey_Exception($method, $result->type);
-                }
-
-            case 401:
-                if ($this->username !== null)
-                {
-                    throw new CloudKey_AuthenticationFailedException($method);
-                }
-                else
-                {
-                    throw new CloudKey_AuthorizationRequiredException($method);
-                }
-
-            case 204: return null; // Empty response
-
-            default:
-                if ($status_code >= 200 && $status_code < 400)
-                {
-                    return json_decode($json_response);
-                }
-                else
-                {
-                    throw new CloudKey_Exception($status_code);
-                }
+            throw new CloudKey_SerializerException('Cannot unserialize response.');
         }
+
+        if (isset($response->error))
+        {
+            $error = $response->error;
+            if (!isset($error->code))
+            {
+                throw new CloudKey_RPCException('Invalid error format.');
+            }
+
+            $message = isset($error->message) ? $error->message : null;
+
+            switch ($error->code)
+            {
+                case 200: $e = new CloudKey_ProcessorException($message); break;
+                case 300: $e = new CloudKey_TransportException($message); break;
+                case 400: $e = new CloudKey_AuthenticationErrorException($message); break;
+                case 410: $e = new CloudKey_RateLimitExceededException($message); break;
+                case 500: $e = new CloudKey_SerializerException($message); break;
+
+                case 600: $e = new CloudKey_InvalidRequestException($message); break;
+                case 610: $e = new CloudKey_InvalidServiceException($message); break;
+                case 620: $e = new CloudKey_InvalidMethodException($message); break;
+                case 630: $e = new CloudKey_InvalidParamException($message); break;
+
+                case 1000: $e = new CloudKey_ApplicationException($message); break;
+                case 1010: $e = new CloudKey_NotFoundException($message); break;
+                case 1020: $e = new CloudKey_ExistsException($message); break;
+                case 1030: $e = new CloudKey_LimitExceededException($message); break;
+
+                default: $e = new CloudKey_RPCException($message, $error->code); break;
+            }
+
+            $e->data = $error->data;
+            throw $e;
+        }
+        else
+        {
+            return isset($response->result) ? $response->result : null;
+        }
+    }
+
+    protected function _normalize($data)
+    {
+        $normalized = '';
+
+        if (is_array($data))
+        {
+            if (isset($data[0]))
+            {
+                foreach ($data as $value)
+                {
+                    $normalized .= is_array($value) ? $this->_normalize($value) : $value;
+                }
+            }
+            else
+            {
+                ksort($data);
+                foreach ($data as $key => $value)
+                {
+                    $normalized .= $key . (is_array($value) ? $this->_normalize($value) : $value);
+                }
+            }
+        }
+        else
+        {
+            $normalized = $data;
+        }
+
+        return $normalized;
     }
 
     protected function _sign_url($url, $secret, $seclevel=CLOUDKEY_SECLEVEL_NONE, $asnum=null, $ip=null, $useragent=null, $countries=null, $referers=null, $expires=null)
@@ -436,11 +433,20 @@ class CloudKey_Api
 }
 
 class CloudKey_Exception extends Exception {}
-class CloudKey_ProtocolException extends CloudKey_Exception {}
-class CloudKey_InvalidNamespaceException extends CloudKey_Exception {}
-class CloudKey_InvalidMethodException extends CloudKey_Exception {}
-class CloudKey_NotFoundException extends CloudKey_Exception {}
-class CloudKey_MissingParamException extends CloudKey_Exception {}
-class CloudKey_InvalidParamException extends CloudKey_Exception {}
-class CloudKey_AuthenticationFailedException extends CloudKey_Exception {}
-class CloudKey_AuthorizationRequiredException extends CloudKey_Exception {}
+class CloudKey_RPCException extends CloudKey_Exception {public $data = null;}
+class CloudKey_ProcessorException extends CloudKey_RPCException {}
+class CloudKey_TransportException extends CloudKey_RPCException {}
+class CloudKey_SerializerException extends CloudKey_RPCException {}
+class CloudKey_AuthenticationErrorException extends CloudKey_RPCException {}
+class CloudKey_RateLimitExceededException extends CloudKey_AuthenticationErrorException {}
+
+class CloudKey_InvalidRequestException extends CloudKey_RPCException {}
+class CloudKey_InvalidServiceException extends CloudKey_InvalidRequestException {}
+class CloudKey_InvalidMethodException extends CloudKey_InvalidRequestException {}
+class CloudKey_InvalidParamException extends CloudKey_InvalidRequestException {}
+
+class CloudKey_ApplicationException extends CloudKey_RPCException {}
+class CloudKey_NotFoundException extends CloudKey_ApplicationException {}
+class CloudKey_ExistsException extends CloudKey_ApplicationException {}
+class CloudKey_LimitExceededException extends CloudKey_ApplicationException {}
+

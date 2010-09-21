@@ -5,7 +5,7 @@ The Dailymotion Cloud API PHP binding exposes all API methods described in the A
 A master class named `CloudKey` exposes all namespaces through object attributes. For instance,
 a call to the `count` method in the `media` namespace would be as follow:
 
-    $cloudkey = new CloudKey($username, $password);
+    $cloudkey = new CloudKey($user_id, $api_key);
     $result = $cloudkey->media->count();
 
 For methods expecting parameters, these must be passed as an associative array:

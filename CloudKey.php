@@ -12,7 +12,7 @@ define('CLOUDKEY_SECLEVEL_REFERER',   1 << 6);
 class CloudKey
 {
     private
-        $services = array();
+        $objects = array();
 
     protected
         $user_id = null,
@@ -34,18 +34,18 @@ class CloudKey
 
     public function __get($name)
     {
-        if (!isset($this->services[$name]))
+        if (!isset($this->objects[$name]))
         {
             $class = 'CloudKey_' . ucfirst($name);
             if (!class_exists($class))
             {
                 throw new CloudKey_InvalidNamespaceException($name);
             }
-            $this->services[$name] = new $class($this->user_id, $this->api_key, $this->base_url, $this->cdn_url, $this->owner_id, null, $this->proxy);
-            $this->services[$name]->parent = $this;
+            $this->objects[$name] = new $class($this->user_id, $this->api_key, $this->base_url, $this->cdn_url, $this->owner_id, null, $this->proxy);
+            $this->objects[$name]->parent = $this;
         }
 
-        return $this->services[$name];
+        return $this->objects[$name];
     }
 
 }
@@ -162,14 +162,14 @@ class CloudKey_Api
         $base_url = 'http://api.dmcloud.net',
         $cdn_url = 'http://cdn.dmcloud.net',
         $owner_id = null,
-        $service = null,
+        $object = null,
         $proxy = null;
 
     public
         $connect_timeout = 120,
         $response_timeout = 120;
 
-    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $owner_id = null, $service = null, $proxy = null)
+    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $owner_id = null, $object = null, $proxy = null)
     {
         $this->user_id = $user_id;
         $this->api_key = $api_key;
@@ -188,13 +188,13 @@ class CloudKey_Api
             $this->owner_id = $owner_id;
         }
 
-        if (get_class($this) !== 'CloudKey_Api' && $service === null)
+        if (get_class($this) !== 'CloudKey_Api' && $object === null)
         {
-            $this->service = str_replace('cloudkey_', '', strtolower(get_class($this)));
+            $this->object = str_replace('cloudkey_', '', strtolower(get_class($this)));
         }
         else
         {
-            $this->service = $service;
+            $this->object = $object;
         }
 
         $this->endpoint = $this->base_url . '/api';
@@ -215,20 +215,19 @@ class CloudKey_Api
             unset($args);
         }
 
-        $service = null;
+        $object = null;
         if (strpos($method, '__') !== FALSE)
         {
-            list($service, $method) = explode('__', $method);
+            list($object, $method) = explode('__', $method);
         }
-        elseif ($this->service !== null)
+        elseif ($this->object !== null)
         {
-            $service = $this->service;
+            $object = $this->object;
         }
 
         $request = array
         (
-            'service' => $service,
-            'method' => $method,
+            'call' => $object . '.' . $method,
         );
 
         if (isset($args))
@@ -292,7 +291,7 @@ class CloudKey_Api
                 case 500: $e = new CloudKey_SerializerException($message); break;
 
                 case 600: $e = new CloudKey_InvalidRequestException($message); break;
-                case 610: $e = new CloudKey_InvalidServiceException($message); break;
+                case 610: $e = new CloudKey_InvalidObjectException($message); break;
                 case 620: $e = new CloudKey_InvalidMethodException($message); break;
                 case 630: $e = new CloudKey_InvalidParamException($message); break;
 
@@ -441,7 +440,7 @@ class CloudKey_AuthenticationErrorException extends CloudKey_RPCException {}
 class CloudKey_RateLimitExceededException extends CloudKey_AuthenticationErrorException {}
 
 class CloudKey_InvalidRequestException extends CloudKey_RPCException {}
-class CloudKey_InvalidServiceException extends CloudKey_InvalidRequestException {}
+class CloudKey_InvalidObjectException extends CloudKey_InvalidRequestException {}
 class CloudKey_InvalidMethodException extends CloudKey_InvalidRequestException {}
 class CloudKey_InvalidParamException extends CloudKey_InvalidRequestException {}
 

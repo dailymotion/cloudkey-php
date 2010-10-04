@@ -93,7 +93,7 @@ class CloudKey_Media extends CloudKey_Api
             throw new CloudKey_MissingParamException('You must provide valid owner_id and api_key parameters in the constructor to use this method');
         }
         $id = null;
-        $preset = 'mp4_h264_aac';
+        $asset_name = 'mp4_h264_aac';
         $seclevel = CLOUDKEY_SECLEVEL_NONE;
         $expires = null;
         $asnum = null;
@@ -106,10 +106,10 @@ class CloudKey_Media extends CloudKey_Api
         extract($args);
         if ($extension == '')
         {
-            $parts = explode('_', $preset);
-            $extension = ($parts[0] != $preset) ? $parts[0] : $extension;
+            $parts = explode('_', $asset_name);
+            $extension = ($parts[0] != $asset_name) ? $parts[0] : $extension;
         }
-        $url = sprintf('%s/route/%s/%s/%s%s', $this->cdn_url, $this->owner_id, $id, $preset, $extension != '' ? ".$extension" : '');
+        $url = sprintf('%s/route/%s/%s/%s%s', $this->cdn_url, $this->owner_id, $id, $asset_name, $extension != '' ? ".$extension" : '');
         return $this->_sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
     }
 }

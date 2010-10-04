@@ -19,16 +19,14 @@ class CloudKey
         $api_key = null,
         $base_url = null,
         $cdn_url = null,
-        $owner_id = null,
         $proxy = null;
 
-    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $owner_id = null, $proxy = null)
+    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $proxy = null)
     {
         $this->user_id = $user_id;
         $this->api_key = $api_key;
         $this->base_url = $base_url;
         $this->cdn_url = $cdn_url;
-        $this->owner_id = $owner_id;
         $this->proxy = $proxy;
     }
 
@@ -41,7 +39,7 @@ class CloudKey
             {
                 throw new CloudKey_InvalidNamespaceException($name);
             }
-            $this->objects[$name] = new $class($this->user_id, $this->api_key, $this->base_url, $this->cdn_url, $this->owner_id, null, $this->proxy);
+            $this->objects[$name] = new $class($this->user_id, $this->api_key, $this->base_url, $this->cdn_url, null, $this->proxy);
             $this->objects[$name]->parent = $this;
         }
 
@@ -71,10 +69,6 @@ class CloudKey_Media extends CloudKey_Api
 {
     public function get_embed_url($args)
     {
-        if ($this->owner_id == null || $this->api_key == null)
-        {
-            throw new CloudKey_MissingParamException('You must provide valid owner_id and api_key parameters in the constructor to use this method');
-        }
         $id = null;
         $seclevel = CLOUDKEY_SECLEVEL_NONE;
         $expires = null;
@@ -82,16 +76,12 @@ class CloudKey_Media extends CloudKey_Api
         $ip = null;
         $useragent = null;
         extract($args);
-        $url = sprintf('%s/embed/%s/%s', $this->base_url, $this->owner_id, $id);
+        $url = sprintf('%s/embed/%s/%s', $this->base_url, $this->user_id, $id);
         return $this->_sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $expires);
     }
 
     public function get_stream_url($args)
     {
-        if ($this->owner_id == null || $this->api_key == null)
-        {
-            throw new CloudKey_MissingParamException('You must provide valid owner_id and api_key parameters in the constructor to use this method');
-        }
         $id = null;
         $asset_name = 'mp4_h264_aac';
         $seclevel = CLOUDKEY_SECLEVEL_NONE;
@@ -109,7 +99,7 @@ class CloudKey_Media extends CloudKey_Api
             $parts = explode('_', $asset_name);
             $extension = ($parts[0] != $asset_name) ? $parts[0] : $extension;
         }
-        $url = sprintf('%s/route/%s/%s/%s%s', $this->cdn_url, $this->owner_id, $id, $asset_name, $extension != '' ? ".$extension" : '');
+        $url = sprintf('%s/route/%s/%s/%s%s', $this->cdn_url, $this->user_id, $id, $asset_name, $extension != '' ? ".$extension" : '');
         return $this->_sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
     }
 }
@@ -161,7 +151,6 @@ class CloudKey_Api
         $endpoint = null,
         $base_url = 'http://api.dmcloud.net',
         $cdn_url = 'http://cdn.dmcloud.net',
-        $owner_id = null,
         $object = null,
         $proxy = null;
 
@@ -169,8 +158,13 @@ class CloudKey_Api
         $connect_timeout = 120,
         $response_timeout = 120;
 
-    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $owner_id = null, $object = null, $proxy = null)
+    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $object = null, $proxy = null)
     {
+        if ($user_id === null || $api_key === null)
+        {
+            throw new CloudKey_InvalidParamException('You must provide valid user_id and api_key parameters');
+        }
+
         $this->user_id = $user_id;
         $this->api_key = $api_key;
         $this->proxy = $proxy;
@@ -182,10 +176,6 @@ class CloudKey_Api
         if ($cdn_url !== null)
         {
             $this->cdn_url = $cdn_url;
-        }
-        if ($owner_id !== null)
-        {
-            $this->owner_id = $owner_id;
         }
 
         if (get_class($this) !== 'CloudKey_Api' && $object === null)

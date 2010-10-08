@@ -118,8 +118,7 @@ class CloudKey_File extends CloudKey_Api
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HEADER => false,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_CONNECTTIMEOUT => $this->connect_timeout,
-            CURLOPT_TIMEOUT => $this->response_timeout,
+            CURLOPT_CONNECTTIMEOUT => 30,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => array('file' => '@' . $file),
         ));
@@ -153,10 +152,6 @@ class CloudKey_Api
         $cdn_url = 'http://cdn.dmcloud.net',
         $object = null,
         $proxy = null;
-
-    public
-        $connect_timeout = 120,
-        $response_timeout = 120;
 
     public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $object = null, $proxy = null)
     {
@@ -236,7 +231,8 @@ class CloudKey_Api
             CURLOPT_POSTFIELDS => json_encode($request),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_CONNECTTIMEOUT => $this->connect_timeout,
+            CURLOPT_CONNECTTIMEOUT => 30,
+            CURLOPT_RESPONSETIMEOUT => 30,
             CURLOPT_TIMEOUT => $this->response_timeout,
         ));
 

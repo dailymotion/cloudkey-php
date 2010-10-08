@@ -232,8 +232,7 @@ class CloudKey_Api
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_CONNECTTIMEOUT => 30,
-            CURLOPT_RESPONSETIMEOUT => 30,
-            CURLOPT_TIMEOUT => $this->response_timeout,
+            CURLOPT_TIMEOUT => 30,
         ));
 
         if ($this->proxy !== null)

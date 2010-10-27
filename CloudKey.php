@@ -37,7 +37,7 @@ class CloudKey
             $class = 'CloudKey_' . ucfirst($name);
             if (!class_exists($class))
             {
-                throw new CloudKey_InvalidNamespaceException($name);
+                throw new CloudKey_InvalidObjectException($name);
             }
             $this->objects[$name] = new $class($this->user_id, $this->api_key, $this->base_url, $this->cdn_url, null, $this->proxy);
             $this->objects[$name]->parent = $this;
@@ -50,19 +50,6 @@ class CloudKey
 
 class CloudKey_User extends CloudKey_Api
 {
-    protected
-        $whoami = false;
-
-    // Cache result
-    public function whoami()
-    {
-        if (false === $this->whoami)
-        {
-            $this->whoami = parent::whoami();
-        }
-
-        return $this->whoami;
-    }
 }
 
 class CloudKey_Media extends CloudKey_Api
@@ -233,6 +220,7 @@ class CloudKey_Api
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_CONNECTTIMEOUT => 30,
             CURLOPT_TIMEOUT => 30,
+            CURLOPT_PROXY => $this->proxy,
         ));
 
         if ($this->proxy !== null)

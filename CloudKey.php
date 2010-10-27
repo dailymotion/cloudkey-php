@@ -288,7 +288,10 @@ class CloudKey_Api
                 default: $e = new CloudKey_RPCException($message, $error->code); break;
             }
 
-            $e->data = $error->data;
+            if (isset($error->data))
+            {
+                $e->data = $error->data;
+            }
             throw $e;
         }
         else

@@ -333,7 +333,7 @@ class CloudKey_Api
                 {
                     throw new InvalidArgumentException('ASNUM security level required and no AS number provided.');
                 }
-                $secparams += $asnum;
+                $secparams .= $asnum;
             }
             if ($seclevel & CLOUDKEY_SECLEVEL_IP)
             {
@@ -341,7 +341,7 @@ class CloudKey_Api
                 {
                     throw new InvalidArgumentException('IP security level required and no IP address provided.');
                 }
-                $secparams += $ip;
+                $secparams .= $ip;
             }
             if ($seclevel & CLOUDKEY_SECLEVEL_USERAGENT)
             {
@@ -349,7 +349,7 @@ class CloudKey_Api
                 {
                     throw new InvalidArgumentException('USERAGENT security level required and no user-agent provided.');
                 }
-                $secparams += $useragent;
+                $secparams .= $useragent;
             }
             if ($seclevel & CLOUDKEY_SECLEVEL_COUNTRY)
             {

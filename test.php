@@ -113,14 +113,14 @@ class CloudKey_FileTest extends PHPUnit_Framework_TestCase
             return;
         }
         $this->cloudkey = new CloudKey($user_id, $api_key, $base_url);
-        $this->cloudkey->media->reset();
+        $this->cloudkey->system->reset(array('object' => 'media'));
     }
 
     public function tearDown()
     {
         if ($this->cloudkey)
         {
-            $this->cloudkey->media->reset();
+            $this->cloudkey->system->reset(array('object' => 'media'));
         }
     }
 
@@ -170,14 +170,14 @@ class CloudKey_MediaTestBase extends PHPUnit_Framework_TestCase
             return;
         }
         $this->cloudkey = new CloudKey($user_id, $api_key, $base_url);
-        $this->cloudkey->media->reset();
+        $this->cloudkey->system->reset(array('object' => 'media'));
     }
 
     public function tearDown()
     {
         if ($this->cloudkey)
         {
-            $this->cloudkey->media->reset();
+            $this->cloudkey->system->reset(array('object' => 'media'));
         }
     }
 

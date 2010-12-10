@@ -37,19 +37,15 @@ class CloudKey
             $class = 'CloudKey_' . ucfirst($name);
             if (!class_exists($class))
             {
-                throw new CloudKey_InvalidObjectException($name);
+                $class = 'CloudKey_Api';
             }
-            $this->objects[$name] = new $class($this->user_id, $this->api_key, $this->base_url, $this->cdn_url, null, $this->proxy);
+            $this->objects[$name] = new $class($this->user_id, $this->api_key, $this->base_url, $this->cdn_url, $name, $this->proxy);
             $this->objects[$name]->parent = $this;
         }
 
         return $this->objects[$name];
     }
 
-}
-
-class CloudKey_User extends CloudKey_Api
-{
 }
 
 class CloudKey_Media extends CloudKey_Api

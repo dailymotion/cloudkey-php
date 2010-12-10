@@ -64,7 +64,7 @@ class CloudKey_Media extends CloudKey_Api
         $useragent = null;
         extract($args);
         $url = sprintf('%s/embed/%s/%s', $this->base_url, $this->user_id, $id);
-        return $this->_sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $expires);
+        return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $expires);
     }
 
     public function get_stream_url($args)
@@ -87,7 +87,7 @@ class CloudKey_Media extends CloudKey_Api
             $extension = ($parts[0] != $asset_name) ? $parts[0] : $extension;
         }
         $url = sprintf('%s/route/%s/%s/%s%s', $this->cdn_url, $this->user_id, $id, $asset_name, $extension != '' ? ".$extension" : '');
-        return $this->_sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
+        return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
     }
 }
 
@@ -207,7 +207,7 @@ class CloudKey_Api
             $request['args'] = $args;
         }
 
-        $request['auth'] = $this->user_id . ':' . md5($this->user_id . $this->_normalize($request) . $this->api_key);
+        $request['auth'] = $this->user_id . ':' . md5($this->user_id . CloudKey_Helpers::normalize($request) . $this->api_key);
 
         $ch = curl_init();
 
@@ -287,8 +287,11 @@ class CloudKey_Api
             return isset($response->result) ? $response->result : null;
         }
     }
+}
 
-    protected function _normalize($data)
+class CloudKey_Helpers
+{
+    static public function normalize($data)
     {
         $normalized = '';
 
@@ -298,7 +301,7 @@ class CloudKey_Api
             {
                 foreach ($data as $value)
                 {
-                    $normalized .= is_array($value) ? $this->_normalize($value) : $value;
+                    $normalized .= is_array($value) ? self::normalize($value) : $value;
                 }
             }
             else
@@ -306,7 +309,7 @@ class CloudKey_Api
                 ksort($data);
                 foreach ($data as $key => $value)
                 {
-                    $normalized .= $key . (is_array($value) ? $this->_normalize($value) : $value);
+                    $normalized .= $key . (is_array($value) ? self::normalize($value) : $value);
                 }
             }
         }
@@ -318,7 +321,7 @@ class CloudKey_Api
         return $normalized;
     }
 
-    protected function _sign_url($url, $secret, $seclevel=CLOUDKEY_SECLEVEL_NONE, $asnum=null, $ip=null, $useragent=null, $countries=null, $referers=null, $expires=null)
+    static public function sign_url($url, $secret, $seclevel=CLOUDKEY_SECLEVEL_NONE, $asnum=null, $ip=null, $useragent=null, $countries=null, $referers=null, $expires=null)
     {
         // Compute digest
         $expires = intval($expires == null ? time() + 7200 : $expires);

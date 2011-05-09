@@ -82,8 +82,15 @@ class CloudKey_Media extends CloudKey_Api
             $parts = explode('_', $asset_name);
             $extension = ($parts[0] != $asset_name) ? $parts[0] : $extension;
         }
-        $url = sprintf('%s/route/%s/%s/%s%s', $this->cdn_url, $this->user_id, $id, $asset_name, $extension != '' ? ".$extension" : '');
-        return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
+	if (strncmp('jpeg_thumbnail_', $asset_name, 15) == 0)
+        {
+	    return sprintf('http://static.dmcloud.net/%s/%s/%s.%s', $this->user_id, $id, $asset_name, $extension);
+        }
+        else
+        {
+            $url = sprintf('%s/route/%s/%s/%s%s', $this->cdn_url, $this->user_id, $id, $asset_name, $extension != '' ? ".$extension" : '');
+            return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
+        }
     }
 }
 

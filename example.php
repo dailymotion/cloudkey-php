@@ -19,7 +19,7 @@ print_r($res);
 $source_url = $res->url;
 
 # The list of encoding assets that we want
-$assets = array('flv_h263_mp3', 'mp4_h264_aac', 'mp4_h264_aac_hq', 'jpeg_thumbnail_medium', 'jpeg_thumbnail_source');
+$assets = array('mp4_h264_aac', 'mp4_h264_aac_hq', 'jpeg_thumbnail_medium', 'jpeg_thumbnail_source');
 
 # A list of metadata we want to add to our media
 $meta = array('title' => 'my first video', 'author' => 'John Doe');
@@ -33,14 +33,14 @@ $media_id = $media->id;
 
 # We'll poll the status of one of our asset
 while(1) {
-    # We fetch the informations of the asset 'flv_h263_mp3'
-    $res = $cloudkey->media->get_assets(array('id' => $media_id, 'assets_names' => array('flv_h263_mp3')));
+    # We fetch the informations of the asset 'mp4_h264_aac'
+    $res = $cloudkey->media->get_assets(array('id' => $media_id, 'assets_names' => array('mp4_h264_aac')));
     print_r($res);
-    $asset = $res->flv_h263_mp3;
+    $asset = $res->mp4_h264_aac;
     # If it is ready we ask for the url of the flash player
     if ($asset->status == 'ready') {
         echo "Your media is ready, here is the url for your embed code:\n";
-        echo $cloudkey->media->get_stream_url(array('id' => $media_id, 'asset_name' => 'flv_h263_mp3')) . "\n";
+        echo $cloudkey->media->get_stream_url(array('id' => $media_id, 'asset_name' => 'mp4_h264_aac')) . "\n";
 	break;
     # If the transcoding process failed we display an error
     } else if ($asset->status == 'error') {
@@ -48,3 +48,17 @@ while(1) {
     }
     sleep(1);
 }
+
+# Get some informations about our media
+# more informations here: http://www.dmcloud.net/doc/api/cloud-api.html#info
+$res = $cloudkey->media->info(array('id' => $media_id, 'fields' => array('assets.source.duration', 'created', 'meta.title')));
+print_r($res);
+
+$duration = $res->assets->source->duration;
+$created = $res->created;
+$title = $res->meta->title;
+
+echo 'the video "' . $title . '" with id: '. $media_id . ' was created on ' . strftime("%c", $created) . ' and has a duration of ' . $duration . " seconds.\n";
+
+# Get the URL of a thumbnai
+echo $cloudkey->media->get_stream_url(array('id' => $media_id, 'asset_name' => 'jpeg_thumbnail_source'));

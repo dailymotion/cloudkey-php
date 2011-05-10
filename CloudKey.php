@@ -376,11 +376,11 @@ class CloudKey_Helpers
                 {
                     $countries = implode(',', $countries);
                 }
-                if (!preg_match('/^-(?:[a-zA-Z]{2})(:?,[a-zA-Z]{2})*$/', $countries))
+                if (!preg_match('/^-?(?:[a-zA-Z]{2})(?:,[a-zA-Z]{2})*$/', $countries))
                 {
                     throw new InvalidArgumentException('Invalid format for COUNTRY security level parameter.');
                 }
-                $public_secparams[] = 'cc=' . strtolower($useragent);
+                $public_secparams[] = 'cc=' . strtolower($countries);
             }
             if ($seclevel & CLOUDKEY_SECLEVEL_REFERER)
             {

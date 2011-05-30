@@ -304,7 +304,7 @@ class CloudKey_Helpers
             {
                 foreach ($data as $value)
                 {
-                    $normalized .= is_array($value) ? self::normalize($value) : $value;
+                    $normalized .= is_array($value) ? self::normalize($value) : (is_bool($value) ? ($value ? 'true' : 'false') : $value);
                 }
             }
             else
@@ -312,7 +312,7 @@ class CloudKey_Helpers
                 ksort($data);
                 foreach ($data as $key => $value)
                 {
-                    $normalized .= $key . (is_array($value) ? self::normalize($value) : $value);
+                    $normalized .= $key . (is_array($value) ? self::normalize($value) : (is_bool($value) ? ($value ? 'true' : 'false') : $value));
                 }
             }
         }

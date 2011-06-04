@@ -58,9 +58,11 @@ class CloudKey_Media extends CloudKey_Api
         $asnum = null;
         $ip = null;
         $useragent = null;
+        $countries = null;
+        $referers = null;
         extract($args);
         $url = sprintf('%s/embed/%s/%s', $this->base_url, $this->user_id, $id);
-        return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $expires);
+        return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires);
     }
 
     public function get_stream_url($args)

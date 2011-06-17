@@ -48,7 +48,7 @@ Example:
     # source asset upload example
     $file = $cloudkey->file->upload_file('path/to/video.mov');
     $media = $cloudkey->media->create();
-    $cloudkey->media->set_asset(array('id' => $media->id, 'preset' => 'source', 'url' => $file->url));
+    $cloudkey->media->set_asset(array('id' => $media->id, 'asset_name' => 'source', 'url' => $file->url));
 
 `media.get_embed_url(id)`
 -------------------------
@@ -84,7 +84,7 @@ The generated URL is perishable, and access is granted based on the provided sec
 Arguments:
 
 - `id`: (required) the media id.
-- `preset`: the desired media asset preset name (default is `mp4_h264_aac`).
+- `asset_name`: the desired media asset asset_name name (default is `mp4_h264_aac`).
 - `seclevel`: the security level bitmask (default is `CLOUDKEY_SECLEVEL_NONE`, see below for details).
 - `expires`: the UNIX epoch expiration time (default is `time() + 7200` (2 hours from now)).
 

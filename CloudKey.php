@@ -345,7 +345,7 @@ class CloudKey_Helpers
             }
             if ($seclevel & CLOUDKEY_SECLEVEL_IP)
             {
-                if (!isset($asnum))
+                if (!isset($ip))
                 {
                     throw new InvalidArgumentException('IP security level required and no IP address provided.');
                 }
@@ -353,7 +353,7 @@ class CloudKey_Helpers
             }
             if ($seclevel & CLOUDKEY_SECLEVEL_USERAGENT)
             {
-                if (!isset($asnum))
+                if (!isset($useragent))
                 {
                     throw new InvalidArgumentException('USERAGENT security level required and no user-agent provided.');
                 }

@@ -20,10 +20,15 @@ or arrays of `stdClass` instances (when result is a list of structures):
     echo $media->id;
 
     # List of structures response
-    $media_list = $cloudkey->media->list();
-    foreach ($media_list as $media)
-    {
-        echo $media->id;
+    $page = 1;
+    while(1) {
+        $res = $cloudkey->media->list(array('fields' => array('id', 'meta.title'), 'page' => $page++));
+        foreach($res->list as $media) {
+            printf("%s %s\n", $media->id, $media->meta->title);
+        }
+        if ($res->page == $res->pages) {
+            break;
+        }
     }
 
 Local methods

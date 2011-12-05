@@ -95,7 +95,7 @@ class CloudKey_Media extends CloudKey_Api
         }
         else
         {
-            $url = sprintf('%s/route/%s/%s/%s%s', $this->cdn_url, $this->user_id, $id, $asset_name, $version, $extension != '' ? ".$extension" : '');
+            $url = sprintf('%s/route/%s/%s/%s%s%s', $this->cdn_url, $this->user_id, $id, $asset_name, $version, $extension != '' ? ".$extension" : '');
             return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
         }
     }

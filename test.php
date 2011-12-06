@@ -5,6 +5,7 @@ $base_url = null;
 $user_id = null;
 $api_key = null;
 
+
 @include 'local_config.php';
 
 if (!function_exists('readline'))
@@ -33,6 +34,7 @@ class AllTests
         $suite->addTestSuite('CloudKey_MediaTest');
         $suite->addTestSuite('CloudKey_MediaMetaTest');
         $suite->addTestSuite('CloudKey_MediaAssetTest');
+        $suite->addTestSuite('CloudKey_MediaStreamUrlTest');
         return $suite;
     }
 }
@@ -149,7 +151,6 @@ class CloudKey_FileTest extends PHPUnit_Framework_TestCase
         $this->assertObjectHasAttribute('name', $media);
         $this->assertObjectHasAttribute('url', $media);
         $this->assertObjectHasAttribute('hash', $media);
-        $this->assertObjectHasAttribute('seal', $media);
         $this->assertEquals($media->size, filesize('.fixtures/video.3gp'));
         $this->assertEquals($media->name, 'video');
         $this->assertEquals($media->hash, sha1_file('.fixtures/video.3gp'));
@@ -504,5 +505,50 @@ class CloudKey_MediaPublishTest extends CloudKey_MediaTestBase
         {
             $this->assertEquals($res->$asset->status, 'error');
         }
+    }
+}
+
+class CloudKey_MediaStreamUrlTest extends CloudKey_MediaTestBase
+{
+    public function testGetStreamUrl()
+    {
+        global $user_id, $api_key, $base_url;
+
+        $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
+        $assets = array('mp4_h264_aac', 'jpeg_thumbnail_medium');
+        $media = $this->cloudkey->media->create(array('assets_names' => $assets, 'url' => $file->url));
+
+        $res = $this->cloudkey->media->get_stream_url(array('id' => $media->id, 'asset_name' => 'jpeg_thumbnail_medium'));
+
+        $res_test = sprintf('http://static.dmcloud.net/%s/%s/jpeg_thumbnail_medium.jpeg', $user_id, $media->id);
+        $this->assertEquals($res, $res_test);
+
+        $res = $this->cloudkey->media->get_stream_url(array('id' => $media->id, 'asset_name' => 'mp4_h264_aac'));
+
+        $res_test = sprintf('/route/%s/%s/mp4_h264_aac.mp4?', $user_id, $media->id);
+        $this->assertContains($res_test, $res);
+
+    }
+
+    public function testGetStreamUrl_with_version()
+    {
+        global $user_id, $api_key, $base_url;
+
+        $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
+        $assets = array('mp4_h264_aac', 'jpeg_thumbnail_medium');
+        $media = $this->cloudkey->media->create(array('assets_names' => $assets, 'url' => $file->url));
+
+        $version = 3546546546;
+
+        $res = $this->cloudkey->media->get_stream_url(array('id' => $media->id, 'asset_name' => 'jpeg_thumbnail_medium', 'version' => $version));
+
+        $res_test = sprintf('http://static.dmcloud.net/%s/%s/jpeg_thumbnail_medium-%s.jpeg', $user_id, $media->id, $version);
+        $this->assertEquals($res, $res_test);
+
+        $res = $this->cloudkey->media->get_stream_url(array('id' => $media->id, 'asset_name' => 'mp4_h264_aac', 'version' => $version));
+
+        $res_test = sprintf('/route/%s/%s/mp4_h264_aac-%s.mp4?', $user_id, $media->id, $version);
+        $this->assertContains($res_test, $res);
+
     }
 }

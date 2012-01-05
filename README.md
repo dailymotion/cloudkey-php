@@ -92,6 +92,8 @@ Arguments:
 - `asset_name`: the desired media asset asset_name name (default is `mp4_h264_aac`).
 - `seclevel`: the security level bitmask (default is `CLOUDKEY_SECLEVEL_NONE`, see below for details).
 - `expires`: the UNIX epoch expiration time (default is `time() + 7200` (2 hours from now)).
+- `download`: `True` to get the download url (default is `False`).
+- `filename`: the download url filename (overrides the `download` parameter if set).
 - `version`: arbitrary integer inserted in the url for the cache flush.
 Use this parameter only if needed, and change its value only when a cache flush is required.
 

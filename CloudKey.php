@@ -79,6 +79,7 @@ class CloudKey_Media extends CloudKey_Api
         $extension = '';
         $version = '';
         $download = false;
+        $filename = '';
         extract($args);
         if ($extension == '')
         {
@@ -91,12 +92,17 @@ class CloudKey_Media extends CloudKey_Api
         }
     	if (strncmp('jpeg_thumbnail_', $asset_name, 15) == 0)
         {
-	    return sprintf('http://static.dmcloud.net/%s/%s/%s%s.%s', $this->user_id, $id, $asset_name, $version, $extension);
+    	    return sprintf('http://static.dmcloud.net/%s/%s/%s%s.%s', $this->user_id, $id, $asset_name, $version, $extension);
         }
         else
         {
-            $url = sprintf('%s/route/%s/%s/%s%s%s', $this->cdn_url, $this->user_id, $id, $asset_name, $version, $extension != '' ? ".$extension" : '');
-            return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires) . ($download ? '&throttle=0&helper=0&cache=0' : '');
+            $protocol = ($download or $filename) ? 'http' : null;
+            $url = sprintf('%s/route%s/%s/%s/%s%s%s', $this->cdn_url, $protocol ? "/$protocol" : '', $this->user_id, $id, $asset_name, $version, $extension != '' ? ".$extension" : '');
+            if ($filename)
+            {
+                $url = sprintf('%s?filename=%s', $url, urlencode(utf8_encode($filename)));
+            }
+            return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires);
         }
     }
 }

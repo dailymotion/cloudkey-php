@@ -96,6 +96,7 @@ Arguments:
 - `filename`: the download url filename (overrides the `download` parameter if set).
 - `version`: arbitrary integer inserted in the url for the cache flush.
 Use this parameter only if needed, and change its value only when a cache flush is required.
+- `protocol`: streaming protocol ('hls', 'rtmp', 'hps' or 'http'). Overrides the `download` parameter if 'http'.
 
 The following arguments may be required if the `CLOUDKEY_SECLEVEL_DELEGATE` option is not specified in
 the seclevel parameter, depending on the other options. This is not recommanded as it would probably

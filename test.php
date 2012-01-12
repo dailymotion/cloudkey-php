@@ -606,4 +606,39 @@ class CloudKey_MediaStreamUrlTest extends CloudKey_MediaTestBase
         $this->assertContains($res_test, $res);
     }
 
+    /**
+     * @expectedException CloudKey_InvalidMethodException
+     */
+    public function testGetStreamUrl_bad_protocol()
+    {
+        global $user_id, $api_key, $base_url;
+
+        $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
+        $assets = array('mp4_h264_aac', 'jpeg_thumbnail_medium');
+        $media = $this->cloudkey->media->create(array('assets_names' => $assets, 'url' => $file->url));
+
+        $protocol = 'bad';
+
+        $res = $this->cloudkey->media->get_stream_url(array('id' => $media->id, 'asset_name' => 'mp4_h264_aac', 'protocol' => $protocol));
+    }
+
+    public function testGetStreamUrl_protocol_http()
+    {
+        global $user_id, $api_key, $base_url;
+
+        $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
+        $assets = array('mp4_h264_aac', 'jpeg_thumbnail_medium');
+        $media = $this->cloudkey->media->create(array('assets_names' => $assets, 'url' => $file->url));
+
+        $protocol = 'http';
+
+        $res = $this->cloudkey->media->get_stream_url(array('id' => $media->id, 'asset_name' => 'jpeg_thumbnail_medium', 'protocol' => $protocol));
+        $res_test = sprintf('http://static.dmcloud.net/%s/%s/jpeg_thumbnail_medium.jpeg', $user_id, $media->id);
+        $this->assertEquals($res, $res_test);
+
+        $res = $this->cloudkey->media->get_stream_url(array('id' => $media->id, 'asset_name' => 'mp4_h264_aac', 'protocol' => $protocol));
+        $res_test = sprintf('/route/%s/%s/%s/mp4_h264_aac.mp4?', $protocol, $user_id, $media->id);
+        $this->assertContains($res_test, $res);
+    }
+
 }

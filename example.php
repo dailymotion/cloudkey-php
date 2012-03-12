@@ -15,7 +15,7 @@ $cloudkey = new CloudKey($user_id, $api_key);
 $res = $cloudkey->file->upload_file($video_file);
 print_r($res);
 
-# The url of the uploaded video 
+# The url of the uploaded video
 $source_url = $res->url;
 
 # The list of encoding assets that we want
@@ -60,5 +60,12 @@ $title = $res->meta->title;
 
 echo 'the video "' . $title . '" with id: '. $media_id . ' was created on ' . strftime("%c", $created) . ' and has a duration of ' . $duration . " seconds.\n";
 
-# Get the URL of a thumbnai
+# Get the URL of a thumbnail
 echo $cloudkey->media->get_stream_url(array('id' => $media_id, 'asset_name' => 'jpeg_thumbnail_source'));
+
+
+// We set the thumbnail from a url (jpeg file)
+$cloudkey->media->set_thumbnail(array('id' => $media_id, 'url' => 'http://farm5.static.flickr.com/4026/5153920292_354be441b3_o.jpg'));
+
+// We set a thumbnail based on a timecode (format = HH:MM:SS.mm - HH: 2 digits hours, MM: 2 digits minutes, SS: 2 digits seconds, mm: 2 digits ms)
+$cloudkey->media->set_thumbnail(array('id' => $media_id, 'timecode' => '00:00:03.00'));

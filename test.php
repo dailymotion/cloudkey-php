@@ -35,6 +35,7 @@ class AllTests
         $suite->addTestSuite('CloudKey_MediaMetaTest');
         $suite->addTestSuite('CloudKey_MediaAssetTest');
         $suite->addTestSuite('CloudKey_MediaStreamUrlTest');
+        $suite->addTestSuite('CloudKey_MediaEmbedUrlTest');
         return $suite;
     }
 }
@@ -641,4 +642,22 @@ class CloudKey_MediaStreamUrlTest extends CloudKey_MediaTestBase
         $this->assertContains($res_test, $res);
     }
 
+}
+
+class CloudKey_MediaEmbedUrlTest extends CloudKey_MediaTestBase
+{
+    public function testGetEmbedUrl()
+    {
+        global $user_id, $api_key, $base_url;
+
+        $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
+        $assets = array('mp4_h264_aac', 'jpeg_thumbnail_medium');
+        $media = $this->cloudkey->media->create(array('assets_names' => $assets, 'url' => $file->url));
+
+        $res = $this->cloudkey->media->get_embed_url(array('id' => $media->id));
+        $this->assertContains("http://", $res);
+
+        $res = $this->cloudkey->media->get_embed_url(array('id' => $media->id, 'secure' => true));
+        $this->assertContains("https://", $res);
+    }
 }

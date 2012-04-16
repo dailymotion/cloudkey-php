@@ -66,6 +66,7 @@ Arguments:
 - `id`: (required) the media id.
 - `seclevel`: the security level bitmask (default is `CLOUDKEY_SECLEVEL_NONE`, see below for details).
 - `expires`: the UNIX epoch expiration time (default is `time() + 7200` (2 hours from now)).
+- `secure`: `true` to get the https embed url (default is `false`).
 
 The following arguments may be required if the `CLOUDKEY_SECLEVEL_DELEGATE` option is not specified in
 the seclevel parameter, depending on the other options. This is not recommanded as it would probably

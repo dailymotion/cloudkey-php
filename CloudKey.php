@@ -72,6 +72,21 @@ class CloudKey_Media extends CloudKey_Api
         return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires);
     }
 
+    public function get_swf_url($args)
+    {
+        $id = null;
+        $seclevel = CLOUDKEY_SECLEVEL_NONE;
+        $expires = null;
+        $asnum = null;
+        $ip = null;
+        $useragent = null;
+        $countries = null;
+        $referers = null;
+        extract($args);
+        $url = sprintf('%s/player/swf/%s/%s', $this->base_url, $this->user_id, $id);
+        return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires);
+    }
+
     public function get_stream_url($args)
     {
         $id = null;
@@ -89,7 +104,7 @@ class CloudKey_Media extends CloudKey_Api
         $filename = '';
         $protocol = null;
         extract($args);
-        if (!in_array($protocol, array(null, "hls", "rtmp", "hps", "http"))) {
+        if (!in_array($protocol, array(null, "hls", "rtmp", "hps", "http", "hds", "ss"))) {
             throw new CloudKey_InvalidMethodException(sprintf('%s is not a valid streaming protocol', $protocol));
         }
         if ($extension == '')
@@ -103,7 +118,7 @@ class CloudKey_Media extends CloudKey_Api
         }
     	if (strncmp('jpeg_thumbnail_', $asset_name, 15) == 0)
         {
-    	    return sprintf('http://static.dmcloud.net/%s/%s/%s%s.%s', $this->user_id, $id, $asset_name, $version, $extension);
+            return sprintf('http://static.dmcloud.net/%s/%s/%s%s.%s', $this->user_id, $id, $asset_name, $version, $extension);
         }
         else
         {

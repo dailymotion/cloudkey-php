@@ -105,7 +105,7 @@ class CloudKey_Media extends CloudKey_Api
         $protocol = null;
         extract($args);
         if (!in_array($protocol, array(null, "hls", "rtmp", "hps", "http", "hds", "ss"))) {
-            throw new CloudKey_InvalidMethodException(sprintf('%s is not a valid streaming protocol', $protocol));
+            throw new CloudKey_InvalidParamException(sprintf('%s is not a valid streaming protocol', $protocol));
         }
         if ($extension == '')
         {
@@ -120,18 +120,27 @@ class CloudKey_Media extends CloudKey_Api
         {
             return sprintf('http://static.dmcloud.net/%s/%s/%s%s.%s', $this->user_id, $id, $asset_name, $version, $extension);
         }
-        else
+
+        if ($download or $filename)
         {
-            if ($download or $filename) {
-                $protocol = 'http';
-            }
-            $url = sprintf('%s/route%s/%s/%s/%s%s%s', $this->cdn_url, $protocol ? "/$protocol" : '', $this->user_id, $id, $asset_name, $version, $extension != '' ? ".$extension" : '');
-            if ($filename)
-            {
-                $url = sprintf('%s?filename=%s', $url, urlencode(utf8_encode($filename)));
-            }
-            return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires);
+            $protocol = 'http';
         }
+
+        if ($asset_name == 'abs')
+        {
+            $extension = '';
+            if ($protocol == null)
+            {
+                throw new CloudKey_InvalidParamException('protocol is required for abs asset_name');
+            }
+        }
+
+        $url = sprintf('%s/route%s/%s/%s/%s%s%s', $this->cdn_url, $protocol ? "/$protocol" : '', $this->user_id, $id, $asset_name, $version, $extension != '' ? ".$extension" : '');
+        if ($filename)
+        {
+            $url = sprintf('%s?filename=%s', $url, urlencode(utf8_encode($filename)));
+        }
+        return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires);
     }
 }
 

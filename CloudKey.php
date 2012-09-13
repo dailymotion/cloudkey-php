@@ -344,8 +344,43 @@ class CloudKey_Api
     }
 }
 
+
+define('DRM_TOKEN_TIMEOUT', 600);
+
 class CloudKey_Helpers
 {
+  static public function gen_drm_token($user_id, $media_id, $api_key, $rights=null, $meta=null, $callback_url=null, $expires=null, $encode=true)
+  {
+    $info = array(
+                 'user_id' => $user_id,
+                 'media_id' => $media_id,
+                 'expires' => intval($expires == null ? time() + DRM_TOKEN_TIMEOUT : $expires),
+                 'nonce' => md5(uniqid(rand(), true)),
+                 );
+
+    if ($rights != null)
+      {
+        $info['rights'] = $rights;
+      }
+    if ($data != null)
+      {
+        $info['meta'] = $meta;
+      }
+    if ($callback_url != null)
+      {
+        $info['callback_url'] = $callback_url;
+      }
+
+    $info['auth'] = md5(self::normalize($info) . $api_key);
+
+    $payload = json_encode($info);
+    if ($encode)
+      {
+        $payload = strtr(base64_encode($payload), '+/=', '-_,');
+      }
+    return $payload;
+  }
+
     static public function normalize($data)
     {
         $normalized = '';

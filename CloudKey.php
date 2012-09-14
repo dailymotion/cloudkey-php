@@ -349,7 +349,7 @@ define('DRM_TOKEN_TIMEOUT', 600);
 
 class CloudKey_Helpers
 {
-  static public function gen_drm_token($user_id, $media_id, $api_key, $rights=null, $meta=null, $callback_url=null, $expires=null, $encode=true)
+  static public function gen_drm_token($user_id, $media_id, $api_key, $rights=null, $meta=null, $callback_url=null, $expires=null, $max_replay=null, $encode=true)
   {
     $info = array(
                  'user_id' => $user_id,
@@ -358,11 +358,15 @@ class CloudKey_Helpers
                  'nonce' => md5(uniqid(rand(), true)),
                  );
 
+    if ($max_replay != null)
+      {
+        $info['max_replay'] = $max_replay;
+      }
     if ($rights != null)
       {
         $info['rights'] = $rights;
       }
-    if ($data != null)
+    if ($meta != null)
       {
         $info['meta'] = $meta;
       }

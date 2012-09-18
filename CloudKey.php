@@ -380,7 +380,7 @@ class CloudKey_Helpers
     $payload = json_encode($info);
     if ($encode)
       {
-        $payload = strtr(base64_encode($payload), '+/=', '-_,');
+        $payload = strtr(base64_encode($payload), '+/', '-_');
       }
     return $payload;
   }
@@ -489,7 +489,7 @@ class CloudKey_Helpers
         $public_secparams_encoded = '';
         if (count($public_secparams) > 0)
         {
-            $public_secparams_encoded = base64_encode(gzcompress(implode('&', $public_secparams)));
+          $public_secparams_encoded = strstr(base64_encode(gzcompress(implode('&', $public_secparams))), '+/', '-_');
         }
         $rand    = '';
         $letters = 'abcdefghijklmnopqrstuvwxyz0123456789';

@@ -19,15 +19,17 @@ class CloudKey
         $api_key = null,
         $base_url = null,
         $cdn_url = null,
-        $proxy = null;
+        $proxy = null,
+        $timeout = 30;
 
-    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $proxy = null)
+    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $proxy = null, $timeout = 30)
     {
         $this->user_id = $user_id;
         $this->api_key = $api_key;
         $this->base_url = $base_url;
         $this->cdn_url = $cdn_url;
         $this->proxy = $proxy;
+        $this->timeout = $timeout;
     }
 
     public function __get($name)
@@ -39,7 +41,7 @@ class CloudKey
             {
                 $class = 'CloudKey_Api';
             }
-            $this->objects[$name] = new $class($this->user_id, $this->api_key, $this->base_url, $this->cdn_url, $name, $this->proxy);
+            $this->objects[$name] = new $class($this->user_id, $this->api_key, $this->base_url, $this->cdn_url, $name, $this->proxy, $this->timeout);
             $this->objects[$name]->parent = $this;
         }
 
@@ -191,9 +193,10 @@ class CloudKey_Api
         $base_url = 'http://api.dmcloud.net',
         $cdn_url = 'http://cdn.dmcloud.net',
         $object = null,
-        $proxy = null;
+        $proxy = null,
+        $timeout = null;
 
-    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $object = null, $proxy = null)
+    public function __construct($user_id, $api_key, $base_url = null, $cdn_url = null, $object = null, $proxy = null, $timeout = 30)
     {
         if ($user_id === null || $api_key === null)
         {
@@ -203,6 +206,7 @@ class CloudKey_Api
         $this->user_id = $user_id;
         $this->api_key = $api_key;
         $this->proxy = $proxy;
+        $this->timeout = $timeout;
 
         if ($base_url !== null)
         {
@@ -273,8 +277,8 @@ class CloudKey_Api
             CURLOPT_POSTFIELDS => json_encode($request),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_CONNECTTIMEOUT => 30,
-            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CONNECTTIMEOUT => $this->timeout,
+            CURLOPT_TIMEOUT => $this->timeout,
             CURLOPT_PROXY => $this->proxy,
         ));
 

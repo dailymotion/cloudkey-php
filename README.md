@@ -41,8 +41,7 @@ reference and provided as helpers to ease the Dailymotion Cloud API integration.
 --------------------------
 
 This method manages files uploads to the Dailymotion Cloud upload servers. Information pertinent
-to the API media creation processus (especially the media_set_asset method) will be returned as
-a `dict`.
+to the API media creation processus will be returned as a `dict`.
 
 Arguments:
 
@@ -55,7 +54,7 @@ Example:
     # The list of encoding assets that we want
     $assets = array('mp4_h264_aac', 'mp4_h264_aac_hq', 'jpeg_thumbnail_medium', 'jpeg_thumbnail_source');
     # Metadata
-    $meta = array('title' => basename($file->uri), 'author' => 'Author');
+    $meta = array('title' => 'My video', 'author' => 'Author');
     $media = $cloudkey->media->create(array('assets_names' => $assets, 'meta' => $meta, 'url' => $file->url));
 
 `media.get_embed_url(id)`

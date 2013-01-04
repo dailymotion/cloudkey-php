@@ -52,8 +52,11 @@ Example:
 
     # source asset upload example
     $file = $cloudkey->file->upload_file('path/to/video.mov');
-    $media = $cloudkey->media->create();
-    $cloudkey->media->set_asset(array('id' => $media->id, 'asset_name' => 'source', 'url' => $file->url));
+    # The list of encoding assets that we want
+    $assets = array('mp4_h264_aac', 'mp4_h264_aac_hq', 'jpeg_thumbnail_medium', 'jpeg_thumbnail_source');
+    # Metadata
+    $meta = array('title' => basename($file->uri), 'author' => 'Author');
+    $media = $cloudkey->media->create(array('assets_names' => $assets, 'meta' => $meta, 'url' => $file->url));
 
 `media.get_embed_url(id)`
 -------------------------

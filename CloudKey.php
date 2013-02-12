@@ -1,13 +1,14 @@
 <?php
 
-define('CLOUDKEY_SECLEVEL_NONE',      0);
-define('CLOUDKEY_SECLEVEL_DELEGATE',  1 << 0);
-define('CLOUDKEY_SECLEVEL_ASNUM',     1 << 1);
-define('CLOUDKEY_SECLEVEL_IP',        1 << 2);
+define('CLOUDKEY_SECLEVEL_NONE', 0);
+define('CLOUDKEY_SECLEVEL_DELEGATE', 1 << 0);
+define('CLOUDKEY_SECLEVEL_ASNUM', 1 << 1);
+define('CLOUDKEY_SECLEVEL_IP', 1 << 2);
 define('CLOUDKEY_SECLEVEL_USERAGENT', 1 << 3);
-define('CLOUDKEY_SECLEVEL_USEONCE',   1 << 4);
-define('CLOUDKEY_SECLEVEL_COUNTRY',   1 << 5);
-define('CLOUDKEY_SECLEVEL_REFERER',   1 << 6);
+define('CLOUDKEY_SECLEVEL_USEONCE', 1 << 4);
+define('CLOUDKEY_SECLEVEL_COUNTRY', 1 << 5);
+define('CLOUDKEY_SECLEVEL_REFERER', 1 << 6);
+define('CLOUDKEY_SECLEVEL_REFERER_STRICT', 1 << 15);
 
 class CloudKey
 {
@@ -477,7 +478,7 @@ class CloudKey_Helpers
                 }
                 $public_secparams[] = 'cc=' . strtolower($countries);
             }
-            if ($seclevel & CLOUDKEY_SECLEVEL_REFERER)
+            if ($seclevel & CLOUDKEY_SECLEVEL_REFERER || $seclevel & CLOUDKEY_SECLEVEL_REFERER_STRICT)
             {
                 if (!isset($referers) || count($referers) === 0)
                 {

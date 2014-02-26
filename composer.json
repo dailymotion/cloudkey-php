@@ -1,5 +1,6 @@
 {
     "name": "dailymotion/cloudkey-php",
+    "description": "Dailymotion Cloud API PHP bindings",
     "require":
     {
         "php": ">=5.3.0"

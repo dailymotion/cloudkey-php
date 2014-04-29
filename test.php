@@ -1,26 +1,10 @@
-#!/usr/bin/env phpunit
 <?php
 
 $base_url = null;
-$user_id = null;
-$api_key = null;
 
+require_once 'config.php';
 
-@include 'local_config.php';
-
-if (!function_exists('readline'))
-{
-    function readline($prompt = '')
-    {
-        echo $prompt;
-        return rtrim(fgets(STDIN), "\n");
-    }
-}
-
-if (!$user_id) $user_id = readline('User Id: ');
-if (!$api_key) $api_key = readline('API Key: ');
-
-require_once 'PHPUnit/Framework.php';
+require_once 'vendor/autoload.php';
 require_once 'CloudKey.php';
 
 class AllTests

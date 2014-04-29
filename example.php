@@ -1,11 +1,8 @@
-#!/usr/bin/env php5
 <?php
-# You must edit the following values with your own
-$user_id = null;
-$api_key = null;
+
 $video_file = '.fixtures/video.3gp';
 
-@include 'local_config.php';
+require_once 'config.php';
 
 require_once 'CloudKey.php';
 

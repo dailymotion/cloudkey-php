@@ -71,7 +71,7 @@ class CloudKey_Media extends CloudKey_Api
         else {
             $base_url = $this->base_url;
         }
-        $url = sprintf('%s/embed/%s/%s', $base_url, $this->user_id, $id);
+        $url = sprintf('%s/player/embed/%s/%s', $base_url, $this->user_id, $id);
         return CloudKey_Helpers::sign_url($url, $this->api_key, $seclevel, $asnum, $ip, $useragent, $countries, $referers, $expires);
     }
 

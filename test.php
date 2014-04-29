@@ -74,7 +74,7 @@ class CloudKey_UserTest extends PHPUnit_Framework_TestCase
     {
         global $user_id;
         $res = $this->cloudkey->user->info(array('fields' => array('id', 'username')));
-        $this->assertType('object', $res);
+        $this->assertInternalType('object', $res);
         $this->assertObjectHasAttribute('id', $res);
         $this->assertObjectHasAttribute('username', $res);
         $this->assertEquals($res->id, $user_id);
@@ -199,7 +199,7 @@ class CloudKey_MediaTest extends CloudKey_MediaTestBase
     {
         $media = $this->cloudkey->media->create();
         $res = $this->cloudkey->media->info(array('id' => $media->id, 'fields' => array('id')));
-        $this->assertType('object', $res);
+        $this->assertInternalType('object', $res);
         $this->assertObjectHasAttribute('id', $res);
         $this->assertEquals(strlen($res->id), 24);
     }

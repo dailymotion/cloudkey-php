@@ -1,1 +1,23 @@
 local_config.php
+
+### Mess files
+
+.~lock.*
+.tmp*
+**.orig
+
+
+### OS temporary files
+
+## Mac OS X
+.DS_Store
+._*
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+## Windows
+Thumbs.db
+
+## Linux
+*~

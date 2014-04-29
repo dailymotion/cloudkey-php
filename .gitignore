@@ -1,5 +1,11 @@
 local_config.php
 
+### Composer
+
+/composer.phar
+/composer.lock
+/vendor
+
 ### Mess files
 
 .~lock.*

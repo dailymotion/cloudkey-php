@@ -639,6 +639,10 @@ class CloudKey_MediaEmbedUrlTest extends CloudKey_MediaTestBase
         $media = $this->cloudkey->media->create(array('assets_names' => $assets, 'url' => $file->url));
 
         $res = $this->cloudkey->media->get_embed_url(array('id' => $media->id));
+        $res_test = sprintf('/player/embed/%s/%s?', $user_id, $media->id);
+        $this->assertContains($res_test, $res);
+
+        $res = $this->cloudkey->media->get_embed_url(array('id' => $media->id));
         $this->assertContains("http://", $res);
 
         $res = $this->cloudkey->media->get_embed_url(array('id' => $media->id, 'secure' => true));

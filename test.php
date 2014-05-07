@@ -1,26 +1,10 @@
-#!/usr/bin/env phpunit
 <?php
 
 $base_url = null;
-$user_id = null;
-$api_key = null;
 
+require_once 'config.php';
 
-@include 'local_config.php';
-
-if (!function_exists('readline'))
-{
-    function readline($prompt = '')
-    {
-        echo $prompt;
-        return rtrim(fgets(STDIN), "\n");
-    }
-}
-
-if (!$user_id) $user_id = readline('User Id: ');
-if (!$api_key) $api_key = readline('API Key: ');
-
-require_once 'PHPUnit/Framework.php';
+require_once 'vendor/autoload.php';
 require_once 'CloudKey.php';
 
 class AllTests
@@ -90,7 +74,7 @@ class CloudKey_UserTest extends PHPUnit_Framework_TestCase
     {
         global $user_id;
         $res = $this->cloudkey->user->info(array('fields' => array('id', 'username')));
-        $this->assertType('object', $res);
+        $this->assertInternalType('object', $res);
         $this->assertObjectHasAttribute('id', $res);
         $this->assertObjectHasAttribute('username', $res);
         $this->assertEquals($res->id, $user_id);
@@ -215,7 +199,7 @@ class CloudKey_MediaTest extends CloudKey_MediaTestBase
     {
         $media = $this->cloudkey->media->create();
         $res = $this->cloudkey->media->info(array('id' => $media->id, 'fields' => array('id')));
-        $this->assertType('object', $res);
+        $this->assertInternalType('object', $res);
         $this->assertObjectHasAttribute('id', $res);
         $this->assertEquals(strlen($res->id), 24);
     }
@@ -653,6 +637,10 @@ class CloudKey_MediaEmbedUrlTest extends CloudKey_MediaTestBase
         $file = $this->cloudkey->file->upload_file('.fixtures/video.3gp');
         $assets = array('mp4_h264_aac', 'jpeg_thumbnail_medium');
         $media = $this->cloudkey->media->create(array('assets_names' => $assets, 'url' => $file->url));
+
+        $res = $this->cloudkey->media->get_embed_url(array('id' => $media->id));
+        $res_test = sprintf('/player/embed/%s/%s?', $user_id, $media->id);
+        $this->assertContains($res_test, $res);
 
         $res = $this->cloudkey->media->get_embed_url(array('id' => $media->id));
         $this->assertContains("http://", $res);

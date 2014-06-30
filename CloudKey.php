@@ -107,7 +107,7 @@ class CloudKey_Media extends CloudKey_Api
         $filename = '';
         $protocol = null;
         extract($args);
-        if (!in_array($protocol, array(null, "hls", "rtmp", "hps", "http", "hds", "ss"))) {
+        if (!in_array($protocol, array(null, "hls", "rtmp", "hps", "http", "hds", "ss", "dash"))) {
             throw new CloudKey_InvalidParamException(sprintf('%s is not a valid streaming protocol', $protocol));
         }
         if ($extension == '')
@@ -129,7 +129,7 @@ class CloudKey_Media extends CloudKey_Api
             $protocol = 'http';
         }
 
-        if ($asset_name == 'abs')
+        if (strpos($asset_name, 'abs') === 0)
         {
             $extension = '';
             if ($protocol == null)

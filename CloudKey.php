@@ -163,7 +163,7 @@ class CloudKey_File extends CloudKey_Api
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_CONNECTTIMEOUT => 30,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => array('file' => '@' . $file),
+            CURLOPT_POSTFIELDS => array('file' => new \CURLFile($file)),
         ));
 
         if ($this->proxy !== null)
